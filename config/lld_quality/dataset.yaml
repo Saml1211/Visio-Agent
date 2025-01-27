@@ -1,0 +1,23 @@
+- file: "good_example1.vsdx"
+  label: "good"
+  metadata:
+    description: "Clear visual hierarchy with proper grouping and labeling"
+    feedback:
+      - "Excellent use of color coding for different subsystems"
+      - "Consistent spacing between network elements"
+    metrics:
+      shape_count: 42
+      connector_density: 0.15
+      avg_connector_crossings: 1.2
+
+- file: "bad_example2.vsdx"
+  label: "bad"
+  metadata:
+    description: "Overcrowded diagram with overlapping shapes"
+    feedback:
+      - "Lack of logical grouping for related components"
+      - "Inconsistent labeling conventions"
+    metrics:
+      shape_count: 89
+      connector_density: 0.38
+      avg_connector_crossings: 8.7 

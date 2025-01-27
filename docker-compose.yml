@@ -1,0 +1,34 @@
+services:
+  supabase:
+    image: supabase/postgres
+    ports:
+      - "5432:5432"
+      - "3000:3000" # Studio
+      - "8000:8000" # Auth
+    environment:
+      POSTGRES_PASSWORD: secret
+      STUDIO_PASSWORD: secret
+      ENABLE_VECTOR: 'true'
+      ENABLE_RLS: 'true'
+      JWT_SECRET=${JWT_SECRET}
+      SITE_URL=${VISIO_HOST}
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/supabase/migrations
+
+volumes:
+  supabase_data:
+
+  vector_extension:
+    image: ankane/pgvector
+    depends_on:
+      - supabase
+    environment:
+      POSTGRES_URL: postgres://postgres:secret@supabase:5432/postgres 
+
+  visio-agent:
+    environment:
+      - CONFIG_KEY=${CONFIG_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ${DATA_PATH:-./data}:/app/data 

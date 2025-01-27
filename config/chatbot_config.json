@@ -1,0 +1,47 @@
+{
+    "ai_service": {
+        "provider": "openai",
+        "model": "gpt-4",
+        "api_key": "${OPENAI_API_KEY}",
+        "temperature": 0.7,
+        "max_tokens": 2000
+    },
+    "rag_memory": {
+        "vector_store_path": "data/vector_store",
+        "chunk_size": 1000,
+        "overlap": 200,
+        "similarity_threshold": 0.7
+    },
+    "visio_service": {
+        "templates_dir": "config/templates",
+        "stencils_dir": "config/stencils",
+        "output_dir": "output"
+    },
+    "chatbot": {
+        "model_name": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "log_file": "logs/chatbot.log",
+        "performance_log": "logs/performance.log",
+        "system_config": "config/chatbot_config.json"
+    },
+    "ui": {
+        "window_title": "AI Assistant",
+        "window_width": 600,
+        "window_height": 400,
+        "font_family": "Arial",
+        "font_size": 10,
+        "theme_file": "config/themes/default.json",
+        "opacity": 0.95
+    },
+    "hotkey": {
+        "activation_key": "ctrl+alt+q",
+        "always_on_top": false,
+        "minimize_to_tray": true
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "file": "logs/app.log"
+    }
+} 

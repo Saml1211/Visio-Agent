@@ -17,3 +17,10 @@ obj/
 
 # Logs
 *.log
+
+# New entries from the code block
+.vscode/
+data/
+.visio/
+config.vault
+node_modules/
