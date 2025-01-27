@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# C#
+bin/
+obj/
+
+# Environment
+.env
+*.vsdx
+
+# System
+.DS_Store
+.idea/
+
+# Logs
+*.log
