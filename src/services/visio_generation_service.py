@@ -11,15 +11,18 @@ from .ai_service_config import AIServiceManager
 from enum import Enum, auto
 import math
 import time
+import sys
 
 from .file_cache_service import FileCacheService
-from .exceptions import VisioError
+from .exceptions import VisioError, VisioGenerationError
 from .visio_generation.shape_validation import ShapePropertyValidator, ValidationError
 from .visio_style_guide_service import VisioStyleGuideService
 from models.visio_style_models import FontRules, ShapeRules, LineRules, RGBColor
 from .integrations.tech_specs_service import TechSpecsService
-from .integrations.screenpipe_adapter import VisioContextEnricher
+from .integrations.screenpipe_adapter import ScreenPipeAdapter
 from .integrations.spec_search import SpecSearch
+from .connector_routing import ConnectorRouter
+from .visio.config import ShapeConfig, ConnectorConfig
 from .connector_router import OrthogonalRouter, CurvedRouter, StraightRouter
 from .routing import OrthogonalRouter, CurvedRouter
 from .ai_layout_adviser import AILayoutAdviser
@@ -290,53 +293,131 @@ class CustomValidationRule(ValidationRule):
 class VisioGenerationService:
     """Service for generating Visio diagrams with advanced connection routing"""
     
-    def __init__(
-        self,
-        cache_service: FileCacheService,
-        template_dir: Path,
-        stencil_dir: Path,
-        output_dir: Path,
-        style_guide: VisioStyleGuideService
-    ):
-        """
-        Initialize the Visio generation service
-        
-        Args:
-            cache_service: File cache service for templates and stencils
-            template_dir: Directory containing Visio templates
-            stencil_dir: Directory containing Visio stencils
-            output_dir: Directory for generated diagrams
-            style_guide: Visio style guide service
-        """
-        self.cache_service = cache_service
-        self.template_dir = Path(template_dir)
-        self.stencil_dir = Path(stencil_dir)
-        self.output_dir = Path(output_dir)
-        self.style_guide = style_guide
-        
-        # Create directories
-        self.template_dir.mkdir(parents=True, exist_ok=True)
-        self.stencil_dir.mkdir(parents=True, exist_ok=True)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        logger.info(
-            f"Initialized VisioGenerationService with template_dir={template_dir}, "
-            f"stencil_dir={stencil_dir}, output_dir={output_dir}"
-        )
-        
-        # Initialize validation rules
-        self.validation_rules: Dict[str, List[ValidationRule]] = {
-            "default": [
-                RequiredPropertyRule("Width", "Shape must have a width"),
-                RequiredPropertyRule("Height", "Shape must have a height"),
-                RequiredPropertyRule("PinX", "Shape must have an X position"),
-                RequiredPropertyRule("PinY", "Shape must have a Y position")
-            ]
-        }
-        
-        self.routing_config = AIRoutingConfig()
-        self.routing_constraints = RoutingConstraints()
-    
+    def __init__(self):
+        if sys.platform != "win32":
+            raise VisioGenerationError("Visio service requires Windows")
+        self.tech_specs = TechSpecsService()
+        self.screenpipe = ScreenPipeAdapter()
+        self.spec_search = SpecSearch()
+        self.router = ConnectorRouter()
+        self._visio_app = None
+
+    async def initialize(self):
+        """Initialize Visio application"""
+        try:
+            pythoncom.CoInitialize()
+            self._visio_app = win32com.client.Dispatch("Visio.Application")
+            self._visio_app.Visible = True
+        except Exception as e:
+            logger.error(f"Failed to initialize Visio: {str(e)}")
+            raise VisioGenerationError(f"Visio initialization failed: {str(e)}")
+
+    async def generate_diagram(self, components: List[Dict], layout: str = "auto") -> str:
+        """Generate a Visio diagram from components"""
+        try:
+            if not self._visio_app:
+                await self.initialize()
+
+            doc = self._visio_app.Documents.Add("")
+            page = doc.Pages.Item(1)
+
+            # Create shapes
+            shapes = await self._create_shapes(page, components)
+            
+            # Route connectors
+            await self._create_connectors(page, shapes)
+
+            # Apply layout
+            if layout == "auto":
+                page.Layout()
+
+            return doc.FullName
+        except Exception as e:
+            logger.error(f"Diagram generation failed: {str(e)}")
+            raise VisioGenerationError(f"Failed to generate diagram: {str(e)}")
+
+    async def _create_shapes(self, page: any, components: List[Dict]) -> Dict[str, any]:
+        shapes = {}
+        for comp in components:
+            try:
+                shape_config = ShapeConfig(
+                    id=comp["id"],
+                    type=comp["type"],
+                    position=comp.get("position", {"x": 0, "y": 0}),
+                    size=comp.get("size", {"width": 2, "height": 1}),
+                    style=comp.get("style", {}),
+                    text=comp.get("label")
+                )
+                
+                shape = page.Drop(
+                    self._get_master(shape_config.type),
+                    shape_config.position["x"],
+                    shape_config.position["y"]
+                )
+                
+                if shape_config.text:
+                    shape.Text = shape_config.text
+                    
+                shapes[shape_config.id] = shape
+            except Exception as e:
+                logger.error(f"Failed to create shape {comp.get('id')}: {str(e)}")
+                raise VisioGenerationError(f"Shape creation failed: {str(e)}")
+                
+        return shapes
+
+    async def _create_connectors(self, page: any, shapes: Dict[str, any]):
+        try:
+            connections = await self.router.get_optimal_routing(shapes)
+            for conn in connections:
+                config = ConnectorConfig(
+                    id=conn["id"],
+                    source_id=conn["source"],
+                    target_id=conn["target"],
+                    routing_style=conn.get("style", "straight"),
+                    points=conn.get("points", []),
+                    style=conn.get("line_style", {})
+                )
+                
+                connector = page.Drop(
+                    self._get_connector_master(config.routing_style),
+                    0, 0
+                )
+                
+                connector.ConnectShapes(
+                    shapes[config.source_id],
+                    shapes[config.target_id]
+                )
+        except Exception as e:
+            logger.error(f"Failed to create connectors: {str(e)}")
+            raise VisioGenerationError(f"Connector creation failed: {str(e)}")
+
+    def _get_master(self, shape_type: str) -> any:
+        """Get Visio master shape by type"""
+        try:
+            stencil = self._visio_app.Documents.OpenStencil("BASIC_U.VSS")
+            return stencil.Masters.ItemU(shape_type)
+        except Exception as e:
+            logger.error(f"Failed to get master shape: {str(e)}")
+            raise VisioGenerationError(f"Master shape not found: {str(e)}")
+
+    def _get_connector_master(self, style: str) -> any:
+        """Get connector master based on style"""
+        try:
+            stencil = self._visio_app.Documents.OpenStencil("CONNEC_U.VSS")
+            return stencil.Masters.ItemU("Dynamic connector")
+        except Exception as e:
+            logger.error(f"Failed to get connector master: {str(e)}")
+            raise VisioGenerationError(f"Connector master not found: {str(e)}")
+
+    async def cleanup(self):
+        """Clean up Visio resources"""
+        try:
+            if self._visio_app:
+                self._visio_app.Quit()
+                pythoncom.CoUninitialize()
+        except Exception as e:
+            logger.error(f"Failed to cleanup Visio: {str(e)}")
+
     def add_validation_rule(
         self,
         rule: ValidationRule,
@@ -452,132 +533,6 @@ class VisioGenerationService:
         
         return issues
 
-    async def generate_diagram(
-        self,
-        template_name: str,
-        pages: List[PageConfig],
-        output_name: str,
-        generate_pdf: bool = False,
-        ai_service: Optional[AIServiceManager] = None,
-        validate: bool = True,
-        validation_rules: Optional[List[ValidationRule]] = None
-    ) -> Dict[str, Any]:
-        """Generate a multi-page Visio diagram with validation"""
-        try:
-            logger.info(f"Starting diagram generation with template: {template_name}")
-            
-            # Initialize COM
-            pythoncom.CoInitialize()
-            visio = win32com.client.Dispatch("Visio.Application")
-            
-            try:
-                # Get template path from cache
-                template_path = await self._get_template(template_name)
-                
-                # Create new document
-                doc = visio.Documents.Add(template_path)
-                
-                # Process each page
-                for i, page_config in enumerate(pages):
-                    # Create new page if not first page
-                    page = doc.Pages.Item(1) if i == 0 else doc.Pages.Add()
-                    
-                    # Set page properties
-                    page.Name = page_config.name
-                    page.PageSheet.CellsSRC(1, 2, 0).FormulaU = f"{page_config.width} in"  # width
-                    page.PageSheet.CellsSRC(1, 3, 0).FormulaU = f"{page_config.height} in"  # height
-                    
-                    # Set page background if specified
-                    if page_config.background:
-                        page.Background = 1  # Enable background
-                        background = page.Shapes.ItemFromID(1)  # Get background shape
-                        background.CellsSRC(1, 63, 0).FormulaU = f"RGB({page_config.background})"
-                    
-                    # Set header and footer
-                    if page_config.header:
-                        self._add_header_footer(page, page_config.header, True)
-                    if page_config.footer:
-                        self._add_header_footer(page, page_config.footer, False)
-                    
-                    # Add shapes
-                    shape_map = {}  # Map of shape configs to Visio shapes
-                    internal_shapes_map = {}  # Map of shape names to internal shapes
-                    
-                    for shape in page_config.shapes:
-                        # Generate dynamic text if configured
-                        if shape.dynamic_text and ai_service:
-                            try:
-                                shape.text = await self._generate_dynamic_text(
-                                    shape.dynamic_text,
-                                    ai_service
-                                )
-                            except Exception as e:
-                                logger.warning(f"Failed to generate dynamic text: {str(e)}")
-                        
-                        main_shape, internals = self._add_shape(page, shape)
-                        shape_map[shape.master_name] = main_shape
-                        internal_shapes_map[shape.master_name] = internals
-                        
-                        # Add dynamic content if configured
-                        if shape.dynamic_content:
-                            self._add_dynamic_content(main_shape, shape.dynamic_content)
-                    
-                    # Add connectors
-                    for connector in page_config.connectors:
-                        self._add_connector(
-                            page,
-                            shape_map[connector.from_shape],
-                            shape_map[connector.to_shape],
-                            internal_shapes_map[connector.from_shape],
-                            internal_shapes_map[connector.to_shape],
-                            connector
-                        )
-                
-                # Save diagram
-                visio_path = self.output_dir / f"{output_name}.vsdx"
-                doc.SaveAs(str(visio_path))
-                
-                result = {"visio_file": str(visio_path)}
-                
-                # Validate if requested
-                if validate:
-                    validation_result = await self.validate_diagram(
-                        doc,
-                        custom_rules=validation_rules
-                    )
-                    result["validation"] = validation_result
-                    
-                    if not validation_result.is_valid:
-                        logger.warning(
-                            f"Diagram validation failed with "
-                            f"{len(validation_result.issues)} issues"
-                        )
-                
-                # Generate PDF if requested
-                if generate_pdf:
-                    pdf_path = self.output_dir / f"{output_name}.pdf"
-                    doc.ExportAsFixedFormat(
-                        0,  # PDF format
-                        str(pdf_path),
-                        0,  # Intent: Print
-                        1   # Print quality: High
-                    )
-                    result["pdf_file"] = str(pdf_path)
-                
-                logger.info(f"Successfully generated diagram: {visio_path}")
-                return result
-                
-            finally:
-                # Clean up
-                if 'doc' in locals():
-                    doc.Close()
-                visio.Quit()
-                pythoncom.CoUninitialize()
-                
-        except Exception as e:
-            logger.error(f"Error generating diagram: {str(e)}")
-            raise VisioError(f"Diagram generation failed: {str(e)}")
-    
     def _add_shape(self, page: any, config: ShapeConfig) -> Tuple[any, Dict[str, any]]:
         """
         Add a shape to the page with specified configuration
@@ -888,7 +843,7 @@ class VisioGenerationService:
             List of font names available in Visio
         """
         try:
-            fonts = self.visio_app.Fonts
+            fonts = self._visio_app.Fonts
             return [font.Name for font in fonts]
         except Exception as e:
             logging.warning(f"Failed to get available fonts: {str(e)}")
@@ -906,7 +861,7 @@ class VisioGenerationService:
             Visio color value
         """
         return r + (g * 256) + (b * 65536)
-    
+
     def _add_connector(
         self,
         page: any,
@@ -1088,7 +1043,7 @@ class VisioGenerationService:
                 (x + offset, y + offset)
             ])
         return points
-    
+
     async def _get_template(self, template_name: str) -> Path:
         """Get template path from cache or template directory"""
         template_path = self.template_dir / template_name
@@ -1245,7 +1200,7 @@ class VisioGenerationService:
 class VisioGenerator:
     def __init__(self):
         self.spec_service = TechSpecsService()
-        self.context_enricher = VisioContextEnricher()
+        self.context_enricher = ScreenPipeAdapter()
         self.spec_search = SpecSearch()
         self.style_guide = VisioStyleGuideService()
         

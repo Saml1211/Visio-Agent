@@ -1,6 +1,7 @@
 import pytest
 from src.services.vector_store.jina_provider import JinaVectorStore
 from src.models import AVComponent
+from config.jina_settings import JinaConfig
 
 @pytest.fixture
 def jina_store():
@@ -46,3 +47,21 @@ async def test_search_similar(jina_store, mocker):
     assert len(results) == 1
     assert results[0]['id'] == 'test2'
     assert results[0]['score'] == 0.95 
+
+@pytest.mark.asyncio
+async def test_connection_failure():
+    with pytest.raises(ConnectionError):
+        JinaVectorStore(endpoint="grpc://invalid-host:54321")
+
+@pytest.mark.asyncio
+async def test_index_failure(jina_store, mocker):
+    mocker.patch.object(jina_store.client, 'post', side_effect=Exception("Mock error"))
+    with pytest.raises(Exception, match="Mock error"):
+        await jina_store.index_components([AVComponent(...)]) 
+
+def test_config_validation():
+    with pytest.raises(ValidationError):
+        JinaConfig(endpoint="invalid-url")
+        
+    valid_config = JinaConfig(endpoint="grpc://valid-host:54321")
+    assert valid_config.timeout == 300 

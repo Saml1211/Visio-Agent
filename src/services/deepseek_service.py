@@ -1,37 +1,79 @@
-import asyncio
-import re
-import json
-from deepseek_service.exceptions import APIConnectionError, InvalidResponseError
+from typing import Dict, Any, Optional
+import logging
+from .base_service import BaseService, ServiceUnavailableError
+import httpx
 
-class DeepSeekService:
-    def __init__(self, client, model, logger):
-        self.client = client
-        self.model = model
-        self.logger = logger
+logger = logging.getLogger(__name__)
 
-    async def _call_api(self, prompt: str, retries: int = 3) -> dict:
-        for attempt in range(retries):
-            try:
-                response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[{
-                        "role": "user",
-                        "content": prompt
-                    }],
-                    temperature=0.7,
-                    max_tokens=2000
-                )
-                return response.choices[0].message.content
-            except APIConnectionError as e:
-                if attempt == retries - 1:
-                    raise
-                await asyncio.sleep(2 ** attempt)
+class DeepseekService(BaseService):
+    """Service for interacting with Deepseek's API"""
+    
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or self._get_api_key()
+        self.client = httpx.AsyncClient(timeout=60.0)
+        self.base_url = "https://api.deepseek.com/v1"
+        
+    async def initialize(self) -> None:
+        """Initialize the Deepseek service"""
+        if not self.api_key:
+            raise ServiceUnavailableError("Deepseek API key not configured")
             
-    def _parse_response(self, raw_response: str) -> dict:
+    async def cleanup(self) -> None:
+        """Cleanup resources"""
+        await self.client.aclose()
+        
+    async def process(
+        self,
+        prompt: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Process a request through Deepseek's API"""
         try:
-            # Extract JSON from markdown code block
-            json_str = re.search(r'```json\n(.*?)\n```', raw_response, re.DOTALL).group(1)
-            return json.loads(json_str)
-        except (AttributeError, json.JSONDecodeError) as e:
-            self.logger.error(f"Failed to parse response: {str(e)}")
-            raise InvalidResponseError("Malformed API response") 
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "prompt": prompt,
+                "context": context or {},
+                "max_tokens": 2048,
+                "temperature": 0.7
+            }
+            
+            async with self.client.post(
+                f"{self.base_url}/completions",
+                headers=headers,
+                json=payload
+            ) as response:
+                response.raise_for_status()
+                result = response.json()
+                
+                return {
+                    "response": result["choices"][0]["text"],
+                    "metadata": {
+                        "model": result.get("model"),
+                        "usage": result.get("usage", {})
+                    }
+                }
+                
+        except httpx.HTTPError as e:
+            logger.error(f"Deepseek API request failed: {str(e)}")
+            raise ServiceUnavailableError(f"Deepseek service error: {str(e)}")
+            
+    async def health_check(self) -> bool:
+        """Check if the service is available"""
+        try:
+            async with self.client.get(
+                f"{self.base_url}/health",
+                headers={"Authorization": f"Bearer {self.api_key}"}
+            ) as response:
+                return response.status_code == 200
+        except Exception as e:
+            logger.error(f"Deepseek health check failed: {str(e)}")
+            return False
+            
+    def _get_api_key(self) -> Optional[str]:
+        """Get API key from environment"""
+        import os
+        return os.getenv("DEEPSEEK_API_KEY") 

@@ -1,5 +1,6 @@
 from browserbase import Browser, Script
 import os
+from httpx import AsyncClient, Limits
 
 class SpecSearch:
     def __init__(self):
@@ -11,6 +12,10 @@ class SpecSearch:
             'network_gear': 'https://specs.net/search?q=',
             'av_equipment': 'https://avspecs.pro/search?'
         }
+        self.client = AsyncClient(
+            limits=Limits(max_connections=100, max_keepalive_connections=20),
+            timeout=30.0
+        )
     
     async def get_specs(self, component_type: str, model: str) -> dict:
         """Search across multiple spec databases"""
@@ -25,4 +30,5 @@ class SpecSearch:
             }}
         """)
         
-        return await self.browser.run(script) 
+        response = await self.client.get(url)
+        return response.json() 

@@ -1,0 +1,5 @@
+-r base-requirements.txt
+pywin32==306  # Windows COM support
+pythoncom==0.0.1
+grpcio>=1.62.0; sys_platform == "win32"
+protobuf>=3.20.0,<5.0.0; sys_platform == "win32" 

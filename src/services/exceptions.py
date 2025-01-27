@@ -100,4 +100,16 @@ class CacheError(Exception):
 
 class VisioError(Exception):
     """Raised when Visio operations fail"""
+    pass
+
+class ServiceNotFoundError(ServiceError):
+    """Raised when a requested service is not found"""
+    pass
+
+class ServiceExecutionError(ServiceError):
+    """Raised when service execution fails"""
+    pass
+
+class PlatformNotSupportedError(ServiceError):
+    """Raised when service is not supported on current platform"""
     pass 

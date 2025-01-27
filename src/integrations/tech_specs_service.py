@@ -1,11 +1,13 @@
 from screenpipe import PipeClient
 from browserbase import Browser, Script
+from services.data_ingestion import JinaReaderService
 
 class TechSpecsService:
-    def __init__(self):
+    def __init__(self, llm_analyze, browser, jina_reader: JinaReaderService):
         self.pipe = PipeClient()
-        self.browser = Browser()
+        self.browser = browser
         self.spec_cache = {}
+        self.jina_reader = jina_reader
         
     async def start(self):
         # Subscribe to screenpipe events
@@ -48,15 +50,9 @@ class TechSpecsService:
 
     async def get_3d_specs(self, model: str):
         """Retrieve 3D product dimensions"""
-        return await self.browser.run(Script(f"""
-            navigate("https://3dspecs.pro/model/{model}")
-            wait_for_selector("#3d-viewer")
-            return {{
-                dimensions: get_3d_measurements(),
-                ports: get_port_locations(),
-                mounting_points: get_mounting_specs()
-            }}
-        """))
+        url = f"https://3dspecs.pro/model/{model}"
+        result = await self.jina_reader.read_url(url)
+        return self._parse_3d_specs(result["content"])
     
     async def get_compatibility(self, component_a: str, component_b: str):
         """Check component compatibility"""

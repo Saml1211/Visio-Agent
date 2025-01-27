@@ -1,6 +1,7 @@
 # Core dependencies
 python-dotenv>=0.19.0
-pydantic>=2.0.0
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.0.0
 fastapi>=0.68.0
 uvicorn>=0.15.0
 
@@ -50,9 +51,9 @@ redis==4.5.5
 backoff==2.2.1
 python-magic==0.4.27
 tenacity>=8.0.0
-jina==3.15.0
-docarray==0.21.0
-firecrawl-sdk==1.2.0
+jina>=3.15.0
+docarray>=0.21.0,<0.22.0
+firecrawl-sdk>=0.1.2
 tqdm>=4.65.0
 numpy>=1.24.0
 pdfplumber==0.10.0
@@ -61,4 +62,20 @@ opencv-python-headless==4.9.0.80
 pytesseract==0.3.10
 azure-cognitiveservices-vision-computervision==0.9.0
 pillow==10.3.0
-pdf2image==1.17.0 
+pdf2image==1.17.0
+
+# Add gRPC dependencies for Windows
+grpcio>=1.62.0
+protobuf>=3.20.0,<5.0.0
+
+# Platform-agnostic
+fastapi-workflows>=0.5.0
+react-flow-renderer>=11.0.0
+
+torch>=2.0.0
+torchvision>=0.15.0
+scikit-learn>=1.2.0
+Pillow>=9.0.0
+
+torch-quantization>=0.1.0
+torch-pruning>=0.1.0 

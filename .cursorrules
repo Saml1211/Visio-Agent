@@ -1,0 +1,154 @@
+# Cursor AI Rules for LLD Automation Project
+
+This document outlines the rules and guidelines for Cursor AI to follow when generating and modifying code for the LLD Automation Project. These rules are designed to ensure code quality, consistency, maintainability, and adherence to project-specific standards.
+
+## I. General Coding Style
+
+**1. Language-Specific Style Guides:**
+
+*   **Python:** Adhere strictly to PEP 8 style guidelines for Python code. Use tools like `flake8` and `pylint` to enforce PEP 8 compliance.
+*   **TypeScript:** Follow standard TypeScript coding conventions and best practices. Use `ESLint` and `Prettier` to enforce code style and formatting.
+*   **Markdown:** Use consistent Markdown formatting for documentation files (e.g., README.md, service-level docs).
+
+**2. Code Formatting:**
+
+*   **Indentation:** Use 4 spaces for Python indentation and 2 spaces for TypeScript/JavaScript indentation.
+*   **Line Length:** Limit lines to a maximum of 120 characters for Python and 100 characters for TypeScript/JavaScript.
+*   **Whitespace:** Use consistent whitespace for readability (e.g., spaces around operators, blank lines to separate logical code blocks).
+*   **Formatting Tools:** Use `Black` for Python code formatting and `Prettier` for TypeScript/JavaScript code formatting.  Cursor AI should automatically apply these formatters where possible.
+
+**3. Naming Conventions:**
+
+*   **Variables:** Use descriptive and meaningful variable names.
+    *   Python: `snake_case` (e.g., `data_ingestion_module`)
+    *   TypeScript/JavaScript: `camelCase` (e.g., `documentProcessorService`)
+*   **Functions/Methods:** Use descriptive names that clearly indicate the function's purpose.
+    *   Python: `snake_case` (e.g., `extract_text_from_pdf`)
+    *   TypeScript/JavaScript: `camelCase` (e.g., `handleFileUpload`)
+*   **Classes:** Use `PascalCase` for class names.
+    *   Python: `DocumentProcessorService`
+    *   TypeScript/JavaScript: `VisioGenerationModule`
+*   **Modules/Files:** Use descriptive names for modules and files, reflecting their content and purpose.
+
+## II. Documentation Rules
+
+**1. Code Comments:**
+
+*   **Meaningful Comments:** Add comments to explain complex logic, non-obvious code sections, and design decisions. Focus on explaining the *why*, not just the *what*.
+*   **Concise Comments:** Keep comments concise and to the point. Avoid redundant comments that simply restate the code.
+*   **Consistent Style:** Use a consistent style for comments (e.g., full sentences, starting with a capital letter).
+
+**2. Docstrings (Python):**
+
+*   **Comprehensive Docstrings:** Write comprehensive docstrings for all Python functions, classes, and modules.
+*   **Google Style Docstrings:** Follow the Google Python Style Guide for docstring formatting.
+*   **Include Parameters, Returns, and Exceptions:** Docstrings must clearly document function parameters, return values, and potential exceptions.
+*   **Examples in Docstrings:** Include code examples in docstrings to illustrate function usage where appropriate.
+
+**3. README.md Files:**
+
+*   **Project-Level README:** Maintain a comprehensive `README.md` file at the project root, providing a high-level overview of the system, setup instructions, usage examples, and developer documentation links.
+*   **Module-Level READMEs (Optional):** Consider adding `README.md` files within key modules to provide more detailed documentation for specific components.
+
+**4. API Documentation:**
+
+*   **Generate API Docs:** Utilize FastAPI's built-in support for Swagger/OpenAPI to automatically generate API documentation for the backend API.
+*   **Publish API Docs:** Publish API documentation online or make it easily accessible to developers who need to interact with the API.
+
+## III. Testing Rules
+
+**1. Unit Tests:**
+
+*   **Comprehensive Unit Tests:** Write unit tests for all core modules and services, focusing on testing individual functions and classes in isolation.
+*   **High Test Coverage:** Aim for high test coverage (80-90% or higher) to ensure that most code paths are tested.
+*   **Test Happy Paths and Error Cases:** Test both normal "happy path" scenarios and error conditions, edge cases, and boundary conditions.
+*   **Mock Dependencies:** Use mocking to isolate unit tests and avoid dependencies on external services or databases.
+*   **Descriptive Test Names:** Use clear and descriptive names for test functions that indicate what is being tested.
+
+**2. Integration Tests:**
+
+*   **Integration Tests for Key Workflows:** Write integration tests to verify the interactions between different modules and services.
+*   **Test End-to-End Flows:** Test end-to-end workflows to ensure that the system functions correctly from data ingestion to output generation.
+*   **Database and API Integration Tests:** Include integration tests for database interactions and API calls to external services (use mock services where appropriate to avoid external dependencies in tests).
+
+**3. Test Automation:**
+
+*   **Automated Test Execution:** Set up automated test execution using CI/CD pipelines (e.g., GitHub Actions, GitLab CI).
+*   **Regular Test Runs:** Ensure tests are run automatically on every code commit and pull request.
+*   **Test Reporting:** Generate test reports and code coverage reports to track test results and identify areas lacking test coverage.
+
+**4. Test-Driven Development (TDD) (Recommended):**
+
+*   Consider adopting Test-Driven Development (TDD) practices for new code development. Write tests *before* writing the code to ensure comprehensive test coverage from the start.
+
+## IV. Error Handling Rules
+
+**1. Robust Exception Handling:**
+
+*   **Specific Exception Handling:** Catch specific exceptions where possible rather than using broad `except Exception:` clauses.
+*   **Informative Error Messages:** Provide informative error messages that help developers diagnose and resolve issues.
+*   **Graceful Degradation (Where Possible):** Implement graceful degradation strategies to allow the system to continue operating in a reduced capacity if non-critical components fail.
+
+**2. Logging:**
+
+*   **Comprehensive Logging:** Implement logging at all levels (modules, services, API endpoints) to track system operation, errors, and performance.
+*   **Structured Logging (JSON):** Use structured logging (e.g., JSON logs) for easier analysis and integration with logging tools.
+*   **Log Levels:** Use appropriate log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL) to categorize log messages.
+*   **Include Context in Logs:** Include relevant context information in log messages (e.g., timestamp, module name, user ID, request ID).
+*   **Centralized Logging (Recommended):** Consider using a centralized logging system (e.g., ELK stack, Grafana Loki) to collect, analyze, and visualize logs from all components.
+
+**3. Error Reporting and Alerting:**
+
+*   **Error Reporting to UI:** Provide informative error messages to users in the UI when errors occur.
+*   **Alerting for Critical Errors:** Set up alerting mechanisms (e.g., email, Slack notifications) to notify developers of critical errors or service failures in production.
+
+## V. Modularity and Architecture Rules
+
+**1. Modular Design:**
+
+*   **Separation of Concerns:** Adhere to the principle of separation of concerns by dividing the system into well-defined, independent modules and services.
+*   **Clear Interfaces:** Define clear interfaces for all modules and services to promote modularity and decoupling.
+*   **Dependency Injection (DI):** Use dependency injection to manage dependencies between components and improve testability and flexibility.
+
+**2. Service-Oriented Architecture (Recommended):**
+
+*   Design the system as a collection of independent, stateless services that communicate through well-defined APIs.
+*   This promotes scalability, maintainability, and independent deployment of services.
+
+**3. Asynchronous Operations:**
+
+*   Utilize `async/await` for all I/O-bound operations (API calls, file operations, Visio automation) to ensure non-blocking operations and improve concurrency.
+
+**4. Configuration-Driven Design:**
+
+*   Externalize configuration settings (API keys, model names, file paths, feature flags) to configuration files or environment variables.
+*   This allows for easy customization and deployment without code changes.
+
+## VI. Project-Specific Rules (LLD Automation System)**
+
+**1. Visio Diagram Conventions:**
+
+*   **Stencil Usage:** Use predefined Visio stencils for AV components to ensure consistency and clarity in diagrams.
+*   **Connector Styles:** Use consistent connector styles (e.g., orthogonal, color-coded) to represent different signal types (audio, video, control, data).
+*   **Shape Data and Text Labels:**  Populate shapes with relevant data and use consistent text labels to identify components and their attributes.
+*   **Layering:** Utilize Visio layers to organize diagram elements and control visibility.
+
+**2. AI Service Configuration:**
+
+*   **Centralized AI Service Management:** Use the `AIServiceConfig` module to manage and configure all AI service providers (OpenAI, Hugging Face, etc.).
+*   **Consistent Prompt Design:** Follow consistent prompt engineering practices for all AI interactions.
+*   **Logging AI Service Calls:**  Log all AI API calls, including requests, responses, and performance metrics.
+
+**3. RAG Memory Usage:**
+
+*   **Structured Data Storage in RAG:** Store project knowledge, design decisions, and web search results in the RAG memory in a structured format (e.g., JSON).
+*   **Clear RAG Querying Conventions:** Define clear conventions for querying the RAG memory to ensure consistent and effective information retrieval.
+*   **Metadata for RAG Entries:**  Include relevant metadata with RAG entries (e.g., source document, timestamp, keywords) to improve searchability and data management.
+
+**4. Testing Focus:**
+
+*   **Visio Diagram Validation Tests:** Prioritize writing tests that validate the visual correctness of generated Visio diagrams, including shape placement, connector routing, text labels, and styling.
+*   **AI Model Performance Tests:**  Include tests to monitor and evaluate the performance of AI models used in the system, tracking metrics like accuracy, latency, and bias.
+*   **Workflow Integration Tests:**  Thoroughly test end-to-end workflows to ensure all components integrate correctly and function as expected.
+
+By adhering to these rules and guidelines, Cursor AI can generate code that is high-quality, consistent, maintainable, and robust, contributing to the successful development of the LLD Automation Project.
