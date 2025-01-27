@@ -78,4 +78,9 @@ scikit-learn>=1.2.0
 Pillow>=9.0.0
 
 torch-quantization>=0.1.0
-torch-pruning>=0.1.0 
+torch-pruning>=0.1.0
+
+google-cloud-vertexai==0.8.0
+
+# Add new dependencies
+python-multipart>=0.0.5 

@@ -1,0 +1,70 @@
+%% Visio Agent System Flow
+graph TD
+    A[User Input] -->|Frontend| B[File Upload & Template Selection]
+    A -->|API| C[REST Trigger]
+    B --> D[Document Processing Pipeline]
+    C --> D
+    D --> E[Advanced OCR & Layout Analysis]
+    E --> F[AI-Powered Data Extraction]
+    F --> G[Entity Recognition & Relationship Mapping]
+    G --> H[RAG Memory Enrichment]
+    H --> I[Diagram Planning & Layout Optimization]
+    I --> J[Visio Generation Service]
+    J --> K[Automated Connector Routing]
+    K --> L[Style Application & Branding]
+    L --> M[Quality Validation Engine]
+    M -->|Pass| N[Output Generation]
+    N --> O[Visio .vsdx + PDF Export]
+    M -->|Fail| P[Self-Learning Refinement Loop]
+    P --> Q[Error Analysis & Feedback Processing]
+    Q --> R[Human-in-the-Loop Interface]
+    R --> S[Parameter Adjustment]
+    S --> I
+    O --> T[Supabase Storage & Versioning]
+    T --> U[User Feedback & Approval]
+    U -->|Approved| V[Knowledge Base Update]
+    V --> W[End]
+    U -->|Revisions Needed| P
+    T --> X[Collaborative Editing]
+
+    %% System Components
+    subgraph Frontend [React Frontend]
+        B
+        R
+        U
+        X
+    end
+
+    subgraph Backend [FastAPI Services]
+        D
+        E
+        F
+        G
+        H
+        I
+        J
+        K
+        L
+        M
+        P
+        Q
+    end
+
+    subgraph AI [AI Services]
+        F
+        G
+        I
+        H
+        Q
+    end
+
+    subgraph Storage [Persistence]
+        T
+        V[(RAG Memory)]
+        style V fill:#a0d8ef
+    end
+
+    style A fill:#f9d5e5,stroke:#333
+    style W fill:#c8ebd9,stroke:#333
+    style J fill:#ffd8b1,stroke:#333
+    style M fill:#ffb3ba,stroke:#333 

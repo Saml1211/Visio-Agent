@@ -6,6 +6,7 @@ from .data_ingestion import FirecrawlService
 import platform
 from datetime import datetime
 from .exceptions import ServiceNotFoundError, ServiceExecutionError
+from .ai_services.vertex_ai_service import VertexAIService
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,11 @@ class ServiceRegistry:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.services = {}
+            cls._instance.services = {
+                "openai": OpenAIService,
+                "vertexai": VertexAIService,
+                "huggingface": HuggingFaceService
+            }
         return cls._instance
     
     def register(self, name: str, service: Type[BaseService]) -> None:

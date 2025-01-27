@@ -12,6 +12,7 @@ from datetime import datetime
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
 import torch
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -669,6 +670,27 @@ class AIServiceManager:
         except Exception as e:
             logger.error(f"Error removing AI service provider: {str(e)}")
             raise AIServiceError(f"Failed to remove provider: {str(e)}")
+
+class AIServiceConfig:
+    def __init__(self):
+        self.providers = {
+            "openai": {
+                "api_key": os.getenv("OPENAI_API_KEY"),
+                "model_map": {
+                    "analyze_content": "gpt-4-turbo",
+                    "text_generation": "gpt-4"
+                }
+            },
+            "vertexai": {
+                "project_id": os.getenv("VERTEXAI_PROJECT_ID"),
+                "location": os.getenv("VERTEXAI_LOCATION", "us-central1"),
+                "model_map": {
+                    "analyze_content": "gemini-1.5-pro",
+                    "text_generation": "gemini-pro"
+                }
+            }
+        }
+        self.default_provider = "vertexai" if os.getenv("VERTEXAI_PROJECT_ID") else "openai"
 
 # Limitations:
 # 1. No versioning/rollback support for prompt changes

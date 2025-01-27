@@ -9,6 +9,7 @@ from .ai_service_config import AIServiceManager
 from .rag_memory_service import RAGMemoryService
 from .visio_generation_service import VisioGenerationService
 from .self_learning_service import SelfLearningService
+from .ai_services.vertex_ai_service import VertexAIService
 
 logger = logging.getLogger(__name__)
 
@@ -363,4 +364,12 @@ class RefinementOrchestrator:
             
         except Exception as e:
             logger.error(f"Error creating workflow record: {str(e)}")
-            raise 
+            raise
+
+    async def _get_ai_service(self, service_type: str):
+        provider_config = self.config['ai_services'][service_type]
+        provider = provider_config.get('provider', self.ai_config.default_provider)
+        
+        if provider == "vertexai":
+            return VertexAIService(provider_config)
+        # Existing providers... 
