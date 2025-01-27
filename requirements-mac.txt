@@ -14,7 +14,6 @@ faiss-cpu>=1.7.0
 keyboard>=0.13.5
 pyperclip>=1.8.2
 psutil>=5.8.0
-tkinter>=8.6
 
 # Testing
 pytest>=7.0.0
