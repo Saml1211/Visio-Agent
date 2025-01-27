@@ -1,0 +1,20 @@
+- name: "code_generation"
+  description: "Prompts for generating code snippets"
+  versions:
+    - version: "1.2"
+      content: |
+        As a senior developer, generate {language} code that:
+        - {requirements}
+        - Follows SOLID principles
+        - Includes error handling
+      metadata:
+        max_tokens: 1500
+        temperature: 0.3
+        
+    - version: "1.1"
+      content: "Write {language} code for: {requirements}"
+      
+- name: "documentation"
+  versions:
+    - version: "2.0"
+      content: "Generate comprehensive documentation for: {code_snippet}" 
