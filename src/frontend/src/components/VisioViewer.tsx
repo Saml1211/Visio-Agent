@@ -35,7 +35,11 @@ function VisioViewer({ data }: VisioViewerProps) {
   }, [data]);
 
   return (
-    <div ref={visioRef} className="visio-container" data-testid="visio-container" />
+    <div ref={visioRef} 
+         className="visio-container" 
+         data-testid="visio-container" 
+         role="region"
+         aria-label="Visio diagram viewer" />
   );
 }
 

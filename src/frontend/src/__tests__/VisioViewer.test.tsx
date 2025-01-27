@@ -16,6 +16,7 @@ describe('VisioViewer Component', () => {
     render(<VisioViewer data={null} />);
     const container = screen.getByTestId('visio-container');
     expect(container).toBeEmptyDOMElement();
+    expect(container).toHaveAttribute('role', 'region');
   });
 
   test('throws error with invalid data structure', () => {
@@ -24,7 +25,7 @@ describe('VisioViewer Component', () => {
       .toThrow('Failed to initialize Visio viewer');
   });
 
-  test('handles cleanup on unmount', () => {
+  test('handles cleanup on unmount without errors', () => {
     const { unmount } = render(<VisioViewer data={mockVisioData} />);
     expect(() => unmount()).not.toThrow();
   });

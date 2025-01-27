@@ -93,12 +93,48 @@ pip install -r requirements-mac.txt
 ```
 
 ## Configuration
-Create a `.env` file in the root directory with your API keys:
+
+### Environment Variables
+
+Create `.env` file from template:
+```bash
+cp .env.example .env
+```
+
+#### Required Variables
+| Variable | Description | Validation |
+|----------|-------------|------------|
+| `JWT_SECRET` | JWT token signing secret | 32+ character random string |
+| `VISIO_LICENSE_KEY` | Valid Visio commercial license | Active Visio 2021+ subscription |
+| `API_BASE_URL` | Backend server URL | Valid HTTP/HTTPS URL |
+
+#### AI Service Requirements
+| Variable | Provider | Required For | Example |
+|----------|----------|--------------|---------|
+| `OPENAI_API_KEY` | OpenAI | GPT-based analysis | `sk-...` |
+| `HUGGINGFACE_API_KEY` | HuggingFace | OSS model alternatives | `hf_...` |
+| `DEEPSEEK_API_KEY` | Deepseek | Code analysis | `ds_...` |
+
+#### Optional Settings
 ```env
-OPENAI_API_KEY=your-openai-key
-JINA_API_KEY=your-jina-key
-FIRECRAWL_API_KEY=your-firecrawl-key
-DEEPSEEK_API_KEY=your-deepseek-key
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=false
+
+# Visio Rendering
+MAX_ZOOM_LEVEL=3.0
+MIN_ZOOM_LEVEL=0.5
+VISIO_STYLE_RULES=config/visio_style_rules
+
+# Security
+CORS_ORIGINS=["http://localhost:3000"]
+```
+
+### Validation Script
+A pre-configured validation script ensures proper configuration:
+```bash
+python scripts/validate_env.py
 ```
 
 ## Usage Guide
