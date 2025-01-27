@@ -373,3 +373,23 @@ class RefinementOrchestrator:
         if provider == "vertexai":
             return VertexAIService(provider_config)
         # Existing providers... 
+
+    async def validate_diagram(self, diagram_path: str) -> Dict:
+        """Use Vertex AI Vision for AV-specific validation"""
+        if self.ai_config.default_provider == "vertexai":
+            vision_service = self.service_registry.get("vertexai")
+            return await vision_service.validate_schematic(diagram_path)
+        else:
+            # Fallback to OpenAI vision
+            return await super().validate_diagram(diagram_path)
+
+    async def refine_diagram(self, current_state: Dict) -> Dict:
+        """Multimodal refinement using Gemini"""
+        if self.ai_config.default_provider == "vertexai":
+            gen_service = self.service_registry.get("vertexai")
+            return await gen_service.refine_diagram(
+                current_state["diagram"],
+                current_state["feedback"]
+            )
+        else:
+            return await super().refine_diagram(current_state) 

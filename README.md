@@ -269,3 +269,21 @@ The Visio Agent project builds upon and integrates with several powerful technol
 - **Azure Computer Vision** for their advanced image analysis capabilities that enhance our OCR and document processing
 
 We are grateful to all these organizations and communities for their contributions to the open source and AI ecosystems that make projects like Visio Agent possible.
+
+## AV-Specific Configuration
+
+```python
+# config/av_models.yaml
+model_assignments:
+  schematic_validation: vertexai/vision@imagetext-av-1.0
+  component_selection: vertexai/generative@gemini-av-1.2
+  signal_flow_analysis: openai/gpt-4-vision-av
+  compliance_checking: vertexai/generative@gemini-compliance-1.1
+```
+
+Key AV Considerations:
+1. Pre-configured AV component library
+2. CTS/AVIXA compliance templates
+3. Signal flow validation rules
+4. Rack space optimization profiles
+5. Cable management best practices

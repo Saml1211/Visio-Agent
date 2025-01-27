@@ -10,8 +10,8 @@ services:
       STUDIO_PASSWORD: secret
       ENABLE_VECTOR: 'true'
       ENABLE_RLS: 'true'
-      JWT_SECRET=${JWT_SECRET}
-      SITE_URL=${VISIO_HOST}
+      JWT_SECRET: ${JWT_SECRET}
+      SITE_URL: ${VISIO_HOST}
     volumes:
       - supabase_data:/var/lib/postgresql/data
       - ./supabase/migrations:/supabase/migrations

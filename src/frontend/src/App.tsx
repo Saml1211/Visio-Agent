@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ChakraProvider,
   Box,
@@ -27,6 +27,7 @@ import {
 } from '@chakra-ui/react';
 import { FiUpload, FiDownload, FiSettings, FiRefreshCw } from 'react-icons/fi';
 import axios from 'axios';
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 
 // API client
 const api = axios.create({
@@ -59,6 +60,16 @@ interface AIConfig {
   current_config: Record<string, any>;
 }
 
+function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  return (
+    <div role="alert">
+      <h2>Application Error</h2>
+      <pre>{error.message}</pre>
+      <button onClick={resetErrorBoundary}>Try Again</button>
+    </div>
+  );
+}
+
 function App() {
   // State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -73,6 +84,7 @@ function App() {
     text: '',
     confidence: 0.5
   });
+  const [visioData, setVisioData] = useState(null);
   
   const toast = useToast();
   
@@ -272,226 +284,242 @@ function App() {
     }
   };
   
+  const loadDiagram = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/diagrams/${id}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setVisioData(data);
+    } catch (error) {
+      console.error('Diagram load failed:', error);
+      throw new Error('Failed to load diagram data');
+    }
+  }, []);
+  
   return (
-    <ChakraProvider>
-      <Container maxW="container.xl" py={8}>
-        <VStack spacing={8} align="stretch">
-          <Heading>LLD Automation System</Heading>
-          
-          <Tabs>
-            <TabList>
-              <Tab>Process Document</Tab>
-              <Tab>Status</Tab>
-              <Tab>Configuration</Tab>
-            </TabList>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <ChakraProvider>
+        <Container maxW="container.xl" py={8}>
+          <VStack spacing={8} align="stretch">
+            <Heading>LLD Automation System</Heading>
             
-            <TabPanels>
-              {/* Process Document Tab */}
-              <TabPanel>
-                <VStack spacing={4} align="stretch">
-                  <FormControl>
-                    <FormLabel>Upload Document</FormLabel>
-                    <Input
-                      type="file"
-                      onChange={handleFileSelect}
-                      accept=".pdf,.docx,.txt,.csv"
-                    />
-                  </FormControl>
-                  
-                  <FormControl>
-                    <FormLabel>Select Template</FormLabel>
-                    <Select
-                      value={selectedTemplate}
-                      onChange={(e) => setSelectedTemplate(e.target.value)}
-                    >
-                      <option value="">Select a template</option>
-                      {templates.map((template) => (
-                        <option key={template.name} value={template.name}>
-                          {template.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  
-                  <Button
-                    leftIcon={<FiUpload />}
-                    colorScheme="blue"
-                    onClick={handleUploadAndProcess}
-                    isLoading={processing}
-                    loadingText="Processing..."
-                  >
-                    Upload & Process
-                  </Button>
-                </VStack>
-              </TabPanel>
+            <Tabs>
+              <TabList>
+                <Tab>Process Document</Tab>
+                <Tab>Status</Tab>
+                <Tab>Configuration</Tab>
+              </TabList>
               
-              {/* Status Tab */}
-              <TabPanel>
-                {workflowStatus && (
+              <TabPanels>
+                {/* Process Document Tab */}
+                <TabPanel>
                   <VStack spacing={4} align="stretch">
-                    <Text>
-                      Workflow ID: <Code>{workflowStatus.workflow_id}</Code>
-                    </Text>
-                    <Text>
-                      Status: <Code>{workflowStatus.status}</Code>
-                    </Text>
-                    
-                    <Box>
-                      <Text fontWeight="bold" mb={2}>Steps:</Text>
-                      {workflowStatus.steps.map((step, index) => (
-                        <Box
-                          key={index}
-                          p={4}
-                          borderWidth={1}
-                          borderRadius="md"
-                          mb={2}
-                        >
-                          <Text>Name: {step.name}</Text>
-                          <Text>Status: {step.status}</Text>
-                          {step.error && (
-                            <Text color="red.500">Error: {step.error}</Text>
-                          )}
-                          {step.metadata && (
-                            <Text>
-                              Metadata: <Code>{JSON.stringify(step.metadata)}</Code>
-                            </Text>
-                          )}
-                        </Box>
-                      ))}
-                    </Box>
-                    
-                    {workflowStatus.status === 'completed' && (
-                      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                        <Button
-                          leftIcon={<FiDownload />}
-                          onClick={() => handleDownload('visio')}
-                        >
-                          Download Visio
-                        </Button>
-                        <Button
-                          leftIcon={<FiDownload />}
-                          onClick={() => handleDownload('pdf')}
-                        >
-                          Download PDF
-                        </Button>
-                      </Grid>
-                    )}
-                    
-                    <Divider my={4} />
-                    
-                    <Box>
-                      <Text fontWeight="bold" mb={2}>Provide Feedback:</Text>
-                      <VStack spacing={4}>
-                        <FormControl>
-                          <FormLabel>Feedback Type</FormLabel>
-                          <Select
-                            value={feedback.type}
-                            onChange={(e) => setFeedback({
-                              ...feedback,
-                              type: e.target.value
-                            })}
-                          >
-                            <option value="">Select type</option>
-                            <option value="data_refinement">Data Refinement</option>
-                            <option value="component_extraction">Component Extraction</option>
-                            <option value="layout_generation">Layout Generation</option>
-                          </Select>
-                        </FormControl>
-                        
-                        <FormControl>
-                          <FormLabel>Feedback Text</FormLabel>
-                          <Textarea
-                            value={feedback.text}
-                            onChange={(e) => setFeedback({
-                              ...feedback,
-                              text: e.target.value
-                            })}
-                          />
-                        </FormControl>
-                        
-                        <FormControl>
-                          <FormLabel>Confidence Score</FormLabel>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={1}
-                            step={0.1}
-                            value={feedback.confidence}
-                            onChange={(e) => setFeedback({
-                              ...feedback,
-                              confidence: parseFloat(e.target.value)
-                            })}
-                          />
-                        </FormControl>
-                        
-                        <Button
-                          colorScheme="blue"
-                          onClick={handleFeedbackSubmit}
-                        >
-                          Submit Feedback
-                        </Button>
-                      </VStack>
-                    </Box>
-                  </VStack>
-                )}
-              </TabPanel>
-              
-              {/* Configuration Tab */}
-              <TabPanel>
-                {aiConfig && (
-                  <VStack spacing={4} align="stretch">
-                    <Text fontWeight="bold">AI Service Configuration</Text>
+                    <FormControl>
+                      <FormLabel>Upload Document</FormLabel>
+                      <Input
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept=".pdf,.docx,.txt,.csv"
+                      />
+                    </FormControl>
                     
                     <FormControl>
-                      <FormLabel>Default Provider</FormLabel>
+                      <FormLabel>Select Template</FormLabel>
                       <Select
-                        value={aiConfig.current_config.default_provider}
-                        onChange={(e) => handleConfigUpdate({
-                          ...aiConfig.current_config,
-                          default_provider: e.target.value
-                        })}
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
                       >
-                        {aiConfig.providers.map((provider) => (
-                          <option key={provider} value={provider}>
-                            {provider}
+                        <option value="">Select a template</option>
+                        {templates.map((template) => (
+                          <option key={template.name} value={template.name}>
+                            {template.name}
                           </option>
                         ))}
                       </Select>
                     </FormControl>
                     
-                    {Object.entries(aiConfig.models).map(([provider, models]) => (
-                      <FormControl key={provider}>
-                        <FormLabel>{provider} Model</FormLabel>
+                    <Button
+                      leftIcon={<FiUpload />}
+                      colorScheme="blue"
+                      onClick={handleUploadAndProcess}
+                      isLoading={processing}
+                      loadingText="Processing..."
+                    >
+                      Upload & Process
+                    </Button>
+                  </VStack>
+                </TabPanel>
+                
+                {/* Status Tab */}
+                <TabPanel>
+                  {workflowStatus && (
+                    <VStack spacing={4} align="stretch">
+                      <Text>
+                        Workflow ID: <Code>{workflowStatus.workflow_id}</Code>
+                      </Text>
+                      <Text>
+                        Status: <Code>{workflowStatus.status}</Code>
+                      </Text>
+                      
+                      <Box>
+                        <Text fontWeight="bold" mb={2}>Steps:</Text>
+                        {workflowStatus.steps.map((step, index) => (
+                          <Box
+                            key={index}
+                            p={4}
+                            borderWidth={1}
+                            borderRadius="md"
+                            mb={2}
+                          >
+                            <Text>Name: {step.name}</Text>
+                            <Text>Status: {step.status}</Text>
+                            {step.error && (
+                              <Text color="red.500">Error: {step.error}</Text>
+                            )}
+                            {step.metadata && (
+                              <Text>
+                                Metadata: <Code>{JSON.stringify(step.metadata)}</Code>
+                              </Text>
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                      
+                      {workflowStatus.status === 'completed' && (
+                        <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                          <Button
+                            leftIcon={<FiDownload />}
+                            onClick={() => handleDownload('visio')}
+                          >
+                            Download Visio
+                          </Button>
+                          <Button
+                            leftIcon={<FiDownload />}
+                            onClick={() => handleDownload('pdf')}
+                          >
+                            Download PDF
+                          </Button>
+                        </Grid>
+                      )}
+                      
+                      <Divider my={4} />
+                      
+                      <Box>
+                        <Text fontWeight="bold" mb={2}>Provide Feedback:</Text>
+                        <VStack spacing={4}>
+                          <FormControl>
+                            <FormLabel>Feedback Type</FormLabel>
+                            <Select
+                              value={feedback.type}
+                              onChange={(e) => setFeedback({
+                                ...feedback,
+                                type: e.target.value
+                              })}
+                            >
+                              <option value="">Select type</option>
+                              <option value="data_refinement">Data Refinement</option>
+                              <option value="component_extraction">Component Extraction</option>
+                              <option value="layout_generation">Layout Generation</option>
+                            </Select>
+                          </FormControl>
+                          
+                          <FormControl>
+                            <FormLabel>Feedback Text</FormLabel>
+                            <Textarea
+                              value={feedback.text}
+                              onChange={(e) => setFeedback({
+                                ...feedback,
+                                text: e.target.value
+                              })}
+                            />
+                          </FormControl>
+                          
+                          <FormControl>
+                            <FormLabel>Confidence Score</FormLabel>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={1}
+                              step={0.1}
+                              value={feedback.confidence}
+                              onChange={(e) => setFeedback({
+                                ...feedback,
+                                confidence: parseFloat(e.target.value)
+                              })}
+                            />
+                          </FormControl>
+                          
+                          <Button
+                            colorScheme="blue"
+                            onClick={handleFeedbackSubmit}
+                          >
+                            Submit Feedback
+                          </Button>
+                        </VStack>
+                      </Box>
+                    </VStack>
+                  )}
+                </TabPanel>
+                
+                {/* Configuration Tab */}
+                <TabPanel>
+                  {aiConfig && (
+                    <VStack spacing={4} align="stretch">
+                      <Text fontWeight="bold">AI Service Configuration</Text>
+                      
+                      <FormControl>
+                        <FormLabel>Default Provider</FormLabel>
                         <Select
-                          value={aiConfig.current_config[`${provider}_model`]}
+                          value={aiConfig.current_config.default_provider}
                           onChange={(e) => handleConfigUpdate({
                             ...aiConfig.current_config,
-                            [`${provider}_model`]: e.target.value
+                            default_provider: e.target.value
                           })}
                         >
-                          {models.map((model) => (
-                            <option key={model} value={model}>
-                              {model}
+                          {aiConfig.providers.map((provider) => (
+                            <option key={provider} value={provider}>
+                              {provider}
                             </option>
                           ))}
                         </Select>
                       </FormControl>
-                    ))}
-                    
-                    <Button
-                      leftIcon={<FiRefreshCw />}
-                      onClick={loadAIConfig}
-                    >
-                      Refresh Configuration
-                    </Button>
-                  </VStack>
-                )}
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </VStack>
-      </Container>
-    </ChakraProvider>
+                      
+                      {Object.entries(aiConfig.models).map(([provider, models]) => (
+                        <FormControl key={provider}>
+                          <FormLabel>{provider} Model</FormLabel>
+                          <Select
+                            value={aiConfig.current_config[`${provider}_model`]}
+                            onChange={(e) => handleConfigUpdate({
+                              ...aiConfig.current_config,
+                              [`${provider}_model`]: e.target.value
+                            })}
+                          >
+                            {models.map((model) => (
+                              <option key={model} value={model}>
+                                {model}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      ))}
+                      
+                      <Button
+                        leftIcon={<FiRefreshCw />}
+                        onClick={loadAIConfig}
+                      >
+                        Refresh Configuration
+                      </Button>
+                    </VStack>
+                  )}
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </VStack>
+        </Container>
+      </ChakraProvider>
+    </ErrorBoundary>
   );
 }
 

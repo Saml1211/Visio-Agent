@@ -671,22 +671,66 @@ class AIServiceManager:
             logger.error(f"Error removing AI service provider: {str(e)}")
             raise AIServiceError(f"Failed to remove provider: {str(e)}")
 
+    def validate_config(self):
+        """AV-specific configuration validation"""
+        required_models = {
+            "openai": ["diagram_planning"],
+            "vertexai": ["vision", "generative"]
+        }
+        
+        for provider, models in required_models.items():
+            if provider in self.providers:
+                missing = [m for m in models if m not in self.providers[provider]["model_map"]]
+                if missing:
+                    raise ConfigurationError(
+                        f"Missing required models for {provider}: {', '.join(missing)}"
+                    )
+        
+        # Verify AV-specific model capabilities
+        if "vertexai" in self.providers:
+            vision_model = self.providers["vertexai"]["model_map"]["vision"]
+            if "imagetext" not in vision_model:
+                logger.warning("VertexAI vision model may not be optimal for AV schematics")
+
+    def validate_av_configuration(self):
+        """Ensure AV-specific model requirements are met"""
+        if "vertexai" in self.providers:
+            required_models = {
+                "vision": ["imagetext@001", "gemini-pro-vision"],
+                "generative": ["gemini-1.5-pro"]
+            }
+            
+            missing = []
+            for model_type, models in required_models.items():
+                if not any(m in self.providers["vertexai"]["model_map"].values() for m in models):
+                    missing.append(model_type)
+            
+            if missing:
+                raise ConfigurationError(
+                    f"Missing required AV models for VertexAI: {', '.join(missing)}"
+                )
+        
+        # Validate OpenAI vision capabilities
+        if "openai" in self.providers and "gpt-4-vision" not in self.providers["openai"]["model_map"].values():
+            logger.warning("OpenAI configuration missing vision capabilities for AV validation")
+
 class AIServiceConfig:
     def __init__(self):
         self.providers = {
             "openai": {
                 "api_key": os.getenv("OPENAI_API_KEY"),
                 "model_map": {
-                    "analyze_content": "gpt-4-turbo",
-                    "text_generation": "gpt-4"
+                    "text_generation": "gpt-4-turbo",
+                    "diagram_planning": "gpt-4-vision-preview"
                 }
             },
             "vertexai": {
                 "project_id": os.getenv("VERTEXAI_PROJECT_ID"),
                 "location": os.getenv("VERTEXAI_LOCATION", "us-central1"),
                 "model_map": {
-                    "analyze_content": "gemini-1.5-pro",
-                    "text_generation": "gemini-pro"
+                    "vision": "imagetext@001",
+                    "generative": "gemini-1.5-pro",
+                    "validation": "gemini-1.5-pro-vision"
                 }
             }
         }

@@ -1,12 +1,31 @@
 import { render, screen } from '@testing-library/react';
 import VisioViewer from '../components/VisioViewer';
+import type { VisioData } from '../types/visio';
 
-const mockSVG = ['<svg><rect width="100" height="100"/></svg>'];
+const mockVisioData: VisioData = {
+  pages: [{
+    svg: '<svg><rect width="100" height="100"/></svg>',
+    pageNumber: 1,
+    shapes: []
+  }],
+  metadata: { width: 1000, height: 800 }
+};
 
-test('renders Visio viewer with controls', () => {
-  render(<VisioViewer svgContents={mockSVG} />);
-  
-  expect(screen.getByText('Page 1')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: '+' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
+describe('VisioViewer Component', () => {
+  test('renders empty container when no data', () => {
+    render(<VisioViewer data={null} />);
+    const container = screen.getByTestId('visio-container');
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test('throws error with invalid data structure', () => {
+    const invalidData = { invalid: true } as unknown as VisioData;
+    expect(() => render(<VisioViewer data={invalidData} />))
+      .toThrow('Failed to initialize Visio viewer');
+  });
+
+  test('handles cleanup on unmount', () => {
+    const { unmount } = render(<VisioViewer data={mockVisioData} />);
+    expect(() => unmount()).not.toThrow();
+  });
 }); 

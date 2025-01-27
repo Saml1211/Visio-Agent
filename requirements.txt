@@ -80,7 +80,8 @@ Pillow>=9.0.0
 torch-quantization>=0.1.0
 torch-pruning>=0.1.0
 
-google-cloud-vertexai==0.8.0
+google-cloud-aiplatform==1.38.1
+google-cloud-vision==3.4.11
 
 # Add new dependencies
 python-multipart>=0.0.5 
