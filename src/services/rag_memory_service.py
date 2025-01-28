@@ -17,6 +17,8 @@ from .vector_store import (
     QueryResult,
     VectorStoreError
 )
+from haystack import Pipeline
+from haystack.nodes import EmbeddingRetriever, FARMReader
 
 logger = logging.getLogger(__name__)
 
@@ -542,4 +544,21 @@ class RAGMemoryService:
             
         except Exception as e:
             logger.error(f"Error retrieving entry: {str(e)}")
-            raise 
+            raise
+
+class MAOEnhancedRAG:
+    def __init__(self):
+        self.pipeline = Pipeline()
+        self.pipeline.add_node(
+            component=EmbeddingRetriever(...),
+            name="Retriever",
+            inputs=["Query"]
+        )
+        self.pipeline.add_node(
+            component=FARMReader(...),
+            name="Reader",
+            inputs=["Retriever"]
+        )
+        
+    async def query(self, question: str) -> dict:
+        return await self.pipeline.run(query=question) 

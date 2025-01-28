@@ -4,6 +4,7 @@ import logging
 from .exceptions import ProcessingError
 from .rag_memory_service import RAGMemoryService
 from .data_ingestion import JinaReaderService, FirecrawlService
+from langgraph.prebuilt import ToolNode
 
 logger = logging.getLogger(__name__)
 
@@ -133,4 +134,20 @@ class DocumentProcessingService:
         """Process web content using optimal scraping strategy"""
         if 'specs' in url or 'technical' in url:
             return await self.firecrawl.scrape_url(url)
-        return await self.jina_reader.read_url(url) 
+        return await self.jina_reader.read_url(url)
+
+class DocumentProcessingTool(ToolNode):
+    def __init__(self):
+        tools = [
+            JinaReaderTool(),
+            FirecrawlTool(),
+            TechnicalSpecParser()
+        ]
+        super().__init__(tools)
+        
+    def process(self, state):
+        # Integrated processing pipeline
+        content = self.tools[0].run(state["raw_content"])
+        structured_data = self.tools[1].run(content)
+        components = self.tools[2].run(structured_data)
+        return {"processed_data": components} 

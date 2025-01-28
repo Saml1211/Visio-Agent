@@ -9,6 +9,8 @@ import pythoncom
 from PIL import Image
 import tempfile
 import os
+from contextlib import contextmanager
+from ..exceptions import VisioError
 
 from ..ai_service_config import AIServiceManager
 from ..rag_memory_service import RAGMemoryService
@@ -83,6 +85,27 @@ class PageConfig:
     guides_visible: Optional[bool] = True  # Show/hide guides
     margin: Optional[Tuple[float, float, float, float]] = None  # Left, Top, Right, Bottom margins in inches
 
+@dataclass
+class VisioResources:
+    """Container for Visio COM objects"""
+    app: Any = None
+    doc: Any = None
+    stencil: Any = None
+
+    def cleanup(self):
+        """Clean up all Visio resources"""
+        try:
+            if self.stencil:
+                self.stencil.Close()
+            if self.doc:
+                self.doc.Close()
+            if self.app:
+                self.app.Quit()
+        except Exception as e:
+            logger.error(f"Error cleaning up Visio resources: {e}")
+        finally:
+            pythoncom.CoUninitialize()
+
 class VisioGenerationService:
     """Enhanced service for generating Visio diagrams"""
     
@@ -119,6 +142,44 @@ class VisioGenerationService:
         
         logger.info("Initialized Visio generation service")
     
+    @contextmanager
+    def _visio_session(self) -> Generator[VisioResources, None, None]:
+        """Context manager for Visio resources"""
+        resources = VisioResources()
+        try:
+            pythoncom.CoInitialize()
+            resources.app = win32com.client.Dispatch("Visio.Application")
+            yield resources
+        except Exception as e:
+            logger.error(f"Failed to initialize Visio session: {e}")
+            raise VisioError(f"Visio initialization failed: {str(e)}")
+        finally:
+            resources.cleanup()
+    
+    def _handle_com_error(self, error: Exception, operation: str) -> None:
+        """Handle COM errors with detailed logging"""
+        error_code = getattr(error, 'hresult', None)
+        error_msg = f"COM Error during {operation}: {str(error)}"
+        if error_code:
+            error_msg += f" (Code: {hex(error_code)})"
+        logger.error(error_msg, exc_info=True)
+        raise VisioError(error_msg)
+    
+    @contextmanager
+    def _temp_file(self, suffix: str = '.vsdx') -> Generator[Path, None, None]:
+        """Context manager for temporary files"""
+        temp_file = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tf:
+                temp_file = Path(tf.name)
+            yield temp_file
+        finally:
+            if temp_file and temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except Exception as e:
+                    logger.warning(f"Failed to delete temp file {temp_file}: {e}")
+    
     async def generate_diagram(
         self,
         template_name: str,
@@ -139,141 +200,136 @@ class VisioGenerationService:
         Returns:
             Tuple of paths to the generated VSDX and PDF files
         """
-        try:
-            # Load template
-            template_path = self.templates_dir / f"{template_name}.vstx"
-            if not template_path.exists():
-                raise ValueError(f"Template not found: {template_name}")
-            
-            # Create new document from template
-            doc = self.visio.Documents.Add(str(template_path))
-            
-            # Sort pages by page_number if specified
-            sorted_pages = sorted(pages, key=lambda p: (p.page_number if p.page_number is not None else float('inf')))
-            
-            # Process each page
-            for page_config in sorted_pages:
-                # Create or get page
-                if page_config.name in [p.Name for p in doc.Pages]:
-                    page = doc.Pages.Item(page_config.name)
-                else:
-                    page = doc.Pages.Add()
-                    page.Name = page_config.name
+        with self._visio_session() as resources:
+            try:
+                # Load template
+                template_path = self.templates_dir / f"{template_name}.vstx"
+                if not template_path.exists():
+                    raise ValueError(f"Template not found: {template_name}")
                 
-                # Set page properties
-                if page_config.size:
-                    page.PageSheet.CellsSRC(
-                        1, 2, 0  # visSectionObject, visRowPage, visPageWidth
-                    ).FormulaU = f"{page_config.size[0]} in"
-                    page.PageSheet.CellsSRC(
-                        1, 2, 1  # visSectionObject, visRowPage, visPageHeight
-                    ).FormulaU = f"{page_config.size[1]} in"
+                # Create new document from template
+                resources.doc = resources.app.Documents.Add(str(template_path))
                 
-                if page_config.orientation:
-                    page.PageSheet.CellsSRC(
-                        1, 2, 2  # visSectionObject, visRowPage, visPageOrientation
-                    ).FormulaU = "1" if page_config.orientation.lower() == "landscape" else "0"
+                # Sort pages by page_number if specified
+                sorted_pages = sorted(pages, key=lambda p: (p.page_number if p.page_number is not None else float('inf')))
                 
-                # Set page scale
-                if page_config.scale != 1.0:
-                    page.PageSheet.CellsSRC(
-                        1, 2, 5  # visSectionObject, visRowPage, visPageScale
-                    ).FormulaU = str(page_config.scale)
-                
-                # Set page margins
-                if page_config.margin:
-                    left, top, right, bottom = page_config.margin
-                    page.PageSheet.CellsSRC(
-                        1, 2, 3  # visSectionObject, visRowPage, visPageMarginLeft
-                    ).FormulaU = f"{left} in"
-                    page.PageSheet.CellsSRC(
-                        1, 2, 4  # visSectionObject, visRowPage, visPageMarginTop
-                    ).FormulaU = f"{top} in"
-                    page.PageSheet.CellsSRC(
-                        1, 2, 5  # visSectionObject, visRowPage, visPageMarginRight
-                    ).FormulaU = f"{right} in"
-                    page.PageSheet.CellsSRC(
-                        1, 2, 6  # visSectionObject, visRowPage, visPageMarginBottom
-                    ).FormulaU = f"{bottom} in"
-                
-                # Set grid and guides visibility
-                page.PageSheet.CellsSRC(
-                    1, 2, 7  # visSectionObject, visRowPage, visPageGridVisible
-                ).FormulaU = "1" if page_config.grid_visible else "0"
-                page.PageSheet.CellsSRC(
-                    1, 2, 8  # visSectionObject, visRowPage, visPageGuidesVisible
-                ).FormulaU = "1" if page_config.guides_visible else "0"
-                
-                # Apply theme if specified
-                if page_config.theme:
-                    theme_path = self.templates_dir / "themes" / f"{page_config.theme}.vst"
-                    if theme_path.exists():
-                        page.ApplyTheme(str(theme_path))
+                # Process each page
+                for page_config in sorted_pages:
+                    # Create or get page
+                    if page_config.name in [p.Name for p in resources.doc.Pages]:
+                        page = resources.doc.Pages.Item(page_config.name)
                     else:
-                        logger.warning(f"Theme not found: {page_config.theme}")
+                        page = resources.doc.Pages.Add()
+                        page.Name = page_config.name
+                    
+                    # Set page properties
+                    if page_config.size:
+                        page.PageSheet.CellsSRC(
+                            1, 2, 0  # visSectionObject, visRowPage, visPageWidth
+                        ).FormulaU = f"{page_config.size[0]} in"
+                        page.PageSheet.CellsSRC(
+                            1, 2, 1  # visSectionObject, visRowPage, visPageHeight
+                        ).FormulaU = f"{page_config.size[1]} in"
+                    
+                    if page_config.orientation:
+                        page.PageSheet.CellsSRC(
+                            1, 2, 2  # visSectionObject, visRowPage, visPageOrientation
+                        ).FormulaU = "1" if page_config.orientation.lower() == "landscape" else "0"
+                    
+                    # Set page scale
+                    if page_config.scale != 1.0:
+                        page.PageSheet.CellsSRC(
+                            1, 2, 5  # visSectionObject, visRowPage, visPageScale
+                        ).FormulaU = str(page_config.scale)
+                    
+                    # Set page margins
+                    if page_config.margin:
+                        left, top, right, bottom = page_config.margin
+                        page.PageSheet.CellsSRC(
+                            1, 2, 3  # visSectionObject, visRowPage, visPageMarginLeft
+                        ).FormulaU = f"{left} in"
+                        page.PageSheet.CellsSRC(
+                            1, 2, 4  # visSectionObject, visRowPage, visPageMarginTop
+                        ).FormulaU = f"{top} in"
+                        page.PageSheet.CellsSRC(
+                            1, 2, 5  # visSectionObject, visRowPage, visPageMarginRight
+                        ).FormulaU = f"{right} in"
+                        page.PageSheet.CellsSRC(
+                            1, 2, 6  # visSectionObject, visRowPage, visPageMarginBottom
+                        ).FormulaU = f"{bottom} in"
+                    
+                    # Set grid and guides visibility
+                    page.PageSheet.CellsSRC(
+                        1, 2, 7  # visSectionObject, visRowPage, visPageGridVisible
+                    ).FormulaU = "1" if page_config.grid_visible else "0"
+                    page.PageSheet.CellsSRC(
+                        1, 2, 8  # visSectionObject, visRowPage, visPageGuidesVisible
+                    ).FormulaU = "1" if page_config.guides_visible else "0"
+                    
+                    # Apply theme if specified
+                    if page_config.theme:
+                        theme_path = self.templates_dir / "themes" / f"{page_config.theme}.vst"
+                        if theme_path.exists():
+                            page.ApplyTheme(str(theme_path))
+                        else:
+                            logger.warning(f"Theme not found: {page_config.theme}")
+                    
+                    # Add shapes
+                    shape_map = {}  # Map shape IDs to Visio shape objects
+                    for shape_config in page_config.shapes:
+                        shape = await self._add_shape(page, shape_config)
+                        if shape_config.id:
+                            shape_map[shape_config.id] = shape
+                    
+                    # Add connectors
+                    for connector_config in page_config.connectors:
+                        await self._add_connector(
+                            page,
+                            connector_config,
+                            shape_map
+                        )
+                    
+                    # Set header/footer
+                    if page_config.header:
+                        page.HeaderFooter.HeaderCenter = page_config.header
+                    if page_config.footer:
+                        page.HeaderFooter.FooterCenter = page_config.footer
                 
-                # Add shapes
-                shape_map = {}  # Map shape IDs to Visio shape objects
-                for shape_config in page_config.shapes:
-                    shape = await self._add_shape(page, shape_config)
-                    if shape_config.id:
-                        shape_map[shape_config.id] = shape
+                # Save paths
+                output_dir.mkdir(parents=True, exist_ok=True)
+                vsdx_path = output_dir / f"{filename}.vsdx"
+                pdf_path = output_dir / f"{filename}.pdf"
                 
-                # Add connectors
-                for connector_config in page_config.connectors:
-                    await self._add_connector(
-                        page,
-                        connector_config,
-                        shape_map
+                # Save as VSDX
+                resources.doc.SaveAs(str(vsdx_path))
+                
+                # Export as PDF with all pages
+                resources.doc.ExportAsFixedFormat(
+                    1,  # PDF format
+                    str(pdf_path),
+                    0,  # Intent: Standard
+                    1,  # Print quality: High
+                    1,  # From: Page 1
+                    resources.doc.Pages.Count  # To: Last page
+                )
+                
+                # Validate with AI if requested
+                if validate_with_ai:
+                    await self._validate_diagram_with_ai(
+                        vsdx_path,
+                        pdf_path,
+                        sorted_pages
                     )
                 
-                # Set header/footer
-                if page_config.header:
-                    page.HeaderFooter.HeaderCenter = page_config.header
-                if page_config.footer:
-                    page.HeaderFooter.FooterCenter = page_config.footer
-            
-            # Save paths
-            output_dir.mkdir(parents=True, exist_ok=True)
-            vsdx_path = output_dir / f"{filename}.vsdx"
-            pdf_path = output_dir / f"{filename}.pdf"
-            
-            # Save as VSDX
-            doc.SaveAs(str(vsdx_path))
-            
-            # Export as PDF with all pages
-            doc.ExportAsFixedFormat(
-                1,  # PDF format
-                str(pdf_path),
-                0,  # Intent: Standard
-                1,  # Print quality: High
-                1,  # From: Page 1
-                doc.Pages.Count  # To: Last page
-            )
-            
-            # Validate with AI if requested
-            if validate_with_ai:
-                await self._validate_diagram_with_ai(
-                    vsdx_path,
-                    pdf_path,
-                    sorted_pages
+                logger.info(
+                    f"Generated diagram: {vsdx_path} "
+                    f"with {len(pages)} pages"
                 )
-            
-            logger.info(
-                f"Generated diagram: {vsdx_path} "
-                f"with {len(pages)} pages"
-            )
-            
-            return vsdx_path, pdf_path
-            
-        except Exception as e:
-            logger.error(f"Error generating diagram: {str(e)}")
-            raise
-        
-        finally:
-            # Cleanup
-            if 'doc' in locals():
-                doc.Close()
+                
+                return vsdx_path, pdf_path
+                
+            except Exception as e:
+                self._handle_com_error(e, "diagram generation")
     
     async def _add_shape(
         self,
@@ -301,20 +357,19 @@ class VisioGenerationService:
                 if not stencil_path.exists():
                     raise ValueError(f"Stencil not found: {config.stencil_name}")
                 
-                stencil = self.visio.Documents.OpenEx(
+                resources = self._visio_session()
+                resources.stencil = resources.app.Documents.OpenEx(
                     str(stencil_path),
                     64  # visOpenStencil
                 )
                 
                 # Drop custom shape
-                master = stencil.Masters.Item(config.master_name)
+                master = resources.stencil.Masters.Item(config.master_name)
                 shape = page.Drop(
                     master,
                     config.position[0],
                     config.position[1]
                 )
-                
-                stencil.Close()
                 
             else:
                 # Drop basic shape

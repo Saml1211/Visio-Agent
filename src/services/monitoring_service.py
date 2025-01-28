@@ -9,7 +9,9 @@ import psutil
 import threading
 import queue
 import gc
-from prometheus_client import Counter, Gauge, Histogram, start_http_server
+from prometheus_client import Counter, Gauge, Histogram, start_http_server, Summary
+import aiohttp
+import asyncio
 
 from .exceptions import PerformanceError
 
@@ -30,6 +32,45 @@ class MonitoringConfig:
     memory_growth_threshold: float = 0.1  # 10% growth between checks
     thread_idle_threshold: int = 300  # seconds
     alert_rate_limit: int = 60  # seconds between similar alerts
+    slack_webhook: str = None
+    email_config: Dict[str, Any] = None
+
+class AlertDestination:
+    """Base class for alert destinations"""
+    async def send_alert(self, alert: Dict[str, Any]) -> bool:
+        raise NotImplementedError
+
+class SlackAlertDestination(AlertDestination):
+    """Send alerts to Slack"""
+    def __init__(self, webhook_url: str):
+        self.webhook_url = webhook_url
+        
+    async def send_alert(self, alert: Dict[str, Any]) -> bool:
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    "text": f"*Alert*: {alert['message']}",
+                    "attachments": [{
+                        "fields": [
+                            {"title": k, "value": str(v), "short": True}
+                            for k, v in alert["data"].items()
+                        ]
+                    }]
+                }
+                async with session.post(self.webhook_url, json=payload) as response:
+                    return response.status == 200
+        except Exception as e:
+            logger.error(f"Error sending Slack alert: {str(e)}")
+            return False
+
+class EmailAlertDestination(AlertDestination):
+    """Send alerts via email"""
+    def __init__(self, smtp_config: Dict[str, Any]):
+        self.smtp_config = smtp_config
+        
+    async def send_alert(self, alert: Dict[str, Any]) -> bool:
+        # Email alert implementation
+        return True
 
 class MonitoringService:
     """Service for monitoring application performance and health"""
@@ -50,7 +91,8 @@ class MonitoringService:
         self.response_time = Histogram(
             "chatbot_response_time_seconds",
             "Response time in seconds",
-            ["type"]
+            ["type"],
+            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
         )
         
         self.memory_usage = Gauge(
@@ -79,6 +121,48 @@ class MonitoringService:
             "Memory growth percentage"
         )
         
+        # New metrics
+        self.validation_duration = Summary(
+            "validation_duration_seconds",
+            "Time spent on validation operations",
+            ["validation_type"]
+        )
+        
+        self.validation_errors = Counter(
+            "validation_errors_total",
+            "Total validation errors",
+            ["error_type"]
+        )
+        
+        self.resource_usage = Gauge(
+            "resource_usage",
+            "Resource usage metrics",
+            ["resource_type"]
+        )
+        
+        self.operation_queue_size = Gauge(
+            "operation_queue_size",
+            "Number of operations in queue",
+            ["operation_type"]
+        )
+        
+        self.alert_latency = Histogram(
+            "alert_latency_seconds",
+            "Time to process and send alerts",
+            buckets=[0.1, 0.5, 1.0, 2.0, 5.0]
+        )
+        
+        # Initialize alert destinations
+        self.alert_destinations: List[AlertDestination] = []
+        if self.config.slack_webhook:
+            self.alert_destinations.append(
+                SlackAlertDestination(self.config.slack_webhook)
+            )
+        if self.config.email_config:
+            self.alert_destinations.append(
+                EmailAlertDestination(self.config.email_config)
+            )
+        
         # Start Prometheus metrics server
         start_http_server(self.config.metrics_port)
         
@@ -104,11 +188,15 @@ class MonitoringService:
         self._health_thread = threading.Thread(target=self._health_check_loop)
         self._health_thread.daemon = True
         
-        # Alert queue
-        self.alert_queue = queue.Queue()
+        # Alert queue and worker
+        self.alert_queue = asyncio.Queue()
+        self._alert_worker_task = None
         
         # Initialize alert rate limiting
         self._last_alerts: Dict[str, float] = {}
+        
+        # Initialize logging
+        self._setup_logging()
         
         logger.info(
             f"Initialized monitoring service on port {self.config.metrics_port}"
@@ -117,12 +205,15 @@ class MonitoringService:
     def start(self) -> None:
         """Start monitoring service"""
         self._health_thread.start()
+        self._alert_worker_task = asyncio.create_task(self._alert_worker())
         logger.info("Started monitoring service")
     
     def stop(self) -> None:
         """Stop monitoring service"""
         self._stop_event.set()
         self._health_thread.join(timeout=5)
+        if self._alert_worker_task:
+            self._alert_worker_task.cancel()
         logger.info("Stopped monitoring service")
     
     def start_operation(self, operation_id: str, operation_type: str) -> None:
@@ -180,62 +271,60 @@ class MonitoringService:
             
             del self._start_times[operation_id]
     
-    def log_error(self, error_type: str, error_message: str = "", **context) -> None:
-        """Log an error occurrence with detailed context
+    def log_error(
+        self,
+        error_type: str,
+        message: str,
+        **context
+    ) -> None:
+        """Log an error with context
         
         Args:
             error_type: Type of error
-            error_message: Detailed error message
-            **context: Additional context data
+            message: Error message
+            **context: Additional error context
         """
-        self.error_counter.labels(type=error_type).inc()
-        
-        # Record error details
+        # Store timestamp as datetime object
         error_entry = {
-            "timestamp": datetime.now().isoformat(),
             "type": error_type,
-            "message": error_message,
+            "message": message,
+            "timestamp": datetime.now(),  # Store as datetime
             "context": context
         }
         
-        # Update error history
         self._error_history.append(error_entry)
-        if len(self._error_history) > self.config.max_error_history:
-            self._error_history.pop(0)
-            
-        # Update error counts
         self._error_counts[error_type] = self._error_counts.get(error_type, 0) + 1
+        
+        # Log to file
+        with open(self.config.error_log, "a") as f:
+            # Convert datetime to ISO format only when writing to file
+            log_entry = {
+                **error_entry,
+                "timestamp": error_entry["timestamp"].isoformat()
+            }
+            f.write(json.dumps(log_entry) + "\n")
         
         # Check error rate
         self._check_error_rate(error_type)
-        
-        # Log to file
-        try:
-            with open(self.config.error_log, "a") as f:
-                json.dump(error_entry, f)
-                f.write("\n")
-        except Exception as e:
-            logger.error(f"Failed to write to error log: {e}")
-            
+    
     def _check_error_rate(self, error_type: str) -> None:
         """Check if error rate exceeds threshold"""
-        now = time.time()
+        now = datetime.now()
         
         # Cleanup old errors periodically
-        if now - self._last_error_cleanup > 60:
-            cutoff = datetime.now() - timedelta(minutes=1)
+        if time.time() - self._last_error_cleanup > 60:
+            cutoff = now - timedelta(minutes=1)
             self._error_history = [
                 e for e in self._error_history 
-                if datetime.fromisoformat(e["timestamp"]) > cutoff
+                if e["timestamp"] > cutoff  # Direct datetime comparison
             ]
-            self._last_error_cleanup = now
-            
-        # Count recent errors
+            self._last_error_cleanup = time.time()
+        
+        # Count recent errors - no parsing needed
         recent_errors = sum(
             1 for e in self._error_history
             if e["type"] == error_type and 
-            datetime.fromisoformat(e["timestamp"]) > 
-            datetime.now() - timedelta(minutes=1)
+            e["timestamp"] > now - timedelta(minutes=1)
         )
         
         if recent_errors > self.config.error_threshold:
@@ -262,7 +351,7 @@ class MonitoringService:
                 error_type: sum(
                     1 for e in self._error_history
                     if e["type"] == error_type and
-                    datetime.fromisoformat(e["timestamp"]) > since
+                    e["timestamp"] > since
                 )
                 for error_type in set(e["type"] for e in self._error_history)
             }
@@ -410,7 +499,36 @@ class MonitoringService:
         except Exception as e:
             logger.error(f"Error logging performance data: {e}")
     
-    def _handle_performance_alert(
+    async def _alert_worker(self) -> None:
+        """Process and send alerts asynchronously"""
+        while True:
+            try:
+                alert = await self.alert_queue.get()
+                start_time = time.time()
+                
+                # Send alert to all destinations
+                results = await asyncio.gather(*[
+                    dest.send_alert(alert)
+                    for dest in self.alert_destinations
+                ], return_exceptions=True)
+                
+                # Record alert latency
+                self.alert_latency.observe(time.time() - start_time)
+                
+                # Log failures
+                for i, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        logger.error(
+                            f"Alert destination {i} failed: {str(result)}"
+                        )
+                
+                self.alert_queue.task_done()
+                
+            except Exception as e:
+                logger.error(f"Error in alert worker: {str(e)}")
+                await asyncio.sleep(1)
+    
+    async def _handle_performance_alert(
         self,
         message: str,
         **kwargs
@@ -435,11 +553,12 @@ class MonitoringService:
             alert = {
                 "timestamp": datetime.now().isoformat(),
                 "message": message,
-                "data": kwargs
+                "data": kwargs,
+                "severity": kwargs.get("severity", "warning")
             }
             
-            # Add alert to queue
-            self.alert_queue.put(alert)
+            # Add to queue for async processing
+            await self.alert_queue.put(alert)
             
             # Log alert
             logger.warning(f"Performance alert: {message}")
@@ -454,10 +573,6 @@ class MonitoringService:
                 if ts > cutoff
             }
             
-            # Raise exception if configured
-            if self.config.get("raise_on_alert", False):
-                raise PerformanceError(message, **kwargs)
-                
         except Exception as e:
             logger.error(f"Error handling performance alert: {e}")
     

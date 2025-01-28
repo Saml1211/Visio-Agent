@@ -152,3 +152,15 @@ This document outlines the rules and guidelines for Cursor AI to follow when gen
 *   **Workflow Integration Tests:**  Thoroughly test end-to-end workflows to ensure all components integrate correctly and function as expected.
 
 By adhering to these rules and guidelines, Cursor AI can generate code that is high-quality, consistent, maintainable, and robust, contributing to the successful development of the LLD Automation Project.
+
+[security]
+allowed_origins = [
+    "https://app.visio-automation.com",
+    "https://collab.visio-automation.com"
+]
+jwt_algorithm = "HS256"
+jwt_scopes = {
+    "visio:generate": "Create new diagrams",
+    "workflow:manage": "Manage automation workflows",
+    "collab:edit": "Real-time collaboration"
+}

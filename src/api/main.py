@@ -18,7 +18,7 @@ import backoff
 import asyncio
 from enum import Enum
 
-from ..services.workflow_orchestrator import RefinementOrchestrator, WorkflowResult
+from ..services.workflow_orchestrator import RefinementOrchestrator, WorkflowResult, VisioOrchestrator
 from ..services.ai_service_config import AIServiceManager
 from ..services.rag_memory_service import RAGMemoryService
 from ..services.visio_generation_service import VisioGenerationService
@@ -64,13 +64,6 @@ visio_service = VisioGenerationService(
 self_learning_service = SelfLearningService(
     ai_service_manager=ai_service_manager,
     rag_memory=rag_memory
-)
-orchestrator = RefinementOrchestrator(
-    ai_service_manager=ai_service_manager,
-    rag_memory=rag_memory,
-    visio_service=visio_service,
-    self_learning_service=self_learning_service,
-    output_dir="data/output"
 )
 
 # Initialize Redis for rate limiting
@@ -174,41 +167,12 @@ async def upload_file(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/process")
-async def process_document(
-    file_path: str,
+async def process_design(
     request: ProcessRequest,
-    background_tasks: BackgroundTasks,
-    _: Optional[str] = Depends(RateLimiter(times=5, seconds=60))  # 5 requests per minute
-) -> Dict[str, Any]:
-    """Process a document with rate limiting"""
-    try:
-        # Validate file exists
-        path = Path(file_path)
-        if not path.exists() or not path.is_file():
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        # Add cleanup task
-        background_tasks.add_task(cleanup_uploaded_file, file_path)
-        
-        # Process document
-        result = await orchestrator.process_document(
-            document_path=file_path,
-            template_name=request.template_name,
-            additional_context=request.additional_context
-        )
-        
-        logger.info(f"Processed document: {result.workflow_id}")
-        return {
-            "workflow_id": result.workflow_id,
-            "status": result.status,
-            "visio_path": result.visio_file_path,
-            "pdf_path": result.pdf_file_path
-        }
-        
-    except Exception as e:
-        logger.error(f"Error processing document: {str(e)}")
-        background_tasks.add_task(cleanup_uploaded_file, file_path)
-        raise HTTPException(status_code=500, detail=str(e))
+    background_tasks: BackgroundTasks
+):
+    orchestrator = VisioOrchestrator.load_from_config()
+    return await orchestrator.process_request(request)
 
 @app.get("/api/status/{workflow_id}")
 async def get_workflow_status(workflow_id: str) -> Dict[str, Any]:

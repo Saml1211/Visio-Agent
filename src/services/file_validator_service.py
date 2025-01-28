@@ -2,10 +2,13 @@ from enum import Enum
 from pathlib import Path
 import magic
 import logging
-from typing import Set, Optional, Dict
+from typing import Set, Optional, Dict, List
 import mimetypes
 import hashlib
 from datetime import datetime, timedelta
+import os
+import re
+from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +17,34 @@ class FileCategory(str, Enum):
     DOCUMENT = "document"
     DIAGRAM = "diagram"
     IMAGE = "image"
+
+class FileValidationResult(BaseModel):
+    """Validation result with comprehensive metadata"""
+    is_valid: bool = Field(..., description="Whether the file is valid")
+    category: Optional[FileCategory] = Field(None, description="File category if valid")
+    mime_type: Optional[str] = Field(None, description="Detected MIME type")
+    size: int = Field(..., description="File size in bytes")
+    hash: str = Field(..., description="SHA-256 hash of file")
+    validation_time: datetime = Field(default_factory=datetime.now)
+    errors: List[str] = Field(default_factory=list)
+    
+    @validator("mime_type")
+    def validate_mime_type(cls, v, values):
+        if values.get("is_valid") and not v:
+            raise ValueError("MIME type must be provided for valid files")
+        return v
+    
+    @validator("size")
+    def validate_size(cls, v):
+        if v < 0:
+            raise ValueError("File size cannot be negative")
+        return v
+    
+    @validator("hash")
+    def validate_hash(cls, v):
+        if not re.match(r"^[a-fA-F0-9]{64}$", v):
+            raise ValueError("Invalid SHA-256 hash format")
+        return v
 
 class FileValidator:
     """Service for validating and handling file types"""
@@ -38,64 +69,134 @@ class FileValidator:
         }
     }
     
-    def __init__(self, max_file_size: int = 10 * 1024 * 1024):
-        """Initialize the validator with maximum file size (default 10MB)"""
+    def __init__(
+        self,
+        max_file_size: int = 10 * 1024 * 1024,  # 10MB default
+        allowed_extensions: Optional[Set[str]] = None
+    ):
+        """Initialize the validator
+        
+        Args:
+            max_file_size: Maximum allowed file size in bytes
+            allowed_extensions: Optional set of allowed file extensions
+        """
+        if max_file_size <= 0:
+            raise ValueError("max_file_size must be positive")
+            
         self.max_file_size = max_file_size
+        self.allowed_extensions = allowed_extensions
         self.mime = magic.Magic(mime=True)
     
     def validate_file(
         self,
         file_path: Path,
         allowed_categories: Optional[Set[FileCategory]] = None
-    ) -> Dict[str, any]:
-        """
-        Validate a file's type, size, and content
+    ) -> FileValidationResult:
+        """Validate a file against security and type constraints
         
         Args:
-            file_path: Path to the file
-            allowed_categories: Set of allowed file categories (optional)
-        
+            file_path: Path to file to validate
+            allowed_categories: Optional set of allowed categories
+            
         Returns:
-            Dict containing validation results
-        
+            Validation result with metadata
+            
         Raises:
             ValueError: If file is invalid
         """
+        errors = []
+        
+        # Basic path validation
+        if not isinstance(file_path, Path):
+            file_path = Path(file_path)
+            
+        if not file_path.exists():
+            errors.append("File does not exist")
+            return FileValidationResult(
+                is_valid=False,
+                size=0,
+                hash="0" * 64,
+                errors=errors
+            )
+            
+        if not file_path.is_file():
+            errors.append("Path is not a regular file")
+            return FileValidationResult(
+                is_valid=False,
+                size=0,
+                hash="0" * 64,
+                errors=errors
+            )
+        
+        # Size validation
         try:
-            if not file_path.exists():
-                raise ValueError("File does not exist")
-            
-            # Check file size
-            file_size = file_path.stat().st_size
-            if file_size > self.max_file_size:
-                raise ValueError(f"File size exceeds limit of {self.max_file_size} bytes")
-            
-            # Get MIME type
-            mime_type = self.mime.from_file(str(file_path))
-            
-            # Determine file category
-            category = self._get_file_category(mime_type)
-            if category is None:
-                raise ValueError(f"Unsupported file type: {mime_type}")
-            
-            # Check against allowed categories
-            if allowed_categories and category not in allowed_categories:
-                raise ValueError(f"File category {category} not allowed")
-            
-            # Calculate file hash
-            file_hash = self._calculate_file_hash(file_path)
-            
-            return {
-                "size": file_size,
-                "mime_type": mime_type,
-                "category": category,
-                "hash": file_hash,
-                "is_valid": True
-            }
-            
+            size = file_path.stat().st_size
+            if size > self.max_file_size:
+                errors.append(f"File size exceeds limit of {self.max_file_size} bytes")
+        except OSError as e:
+            errors.append(f"Error checking file size: {str(e)}")
+            size = 0
+        
+        # Extension validation
+        if self.allowed_extensions:
+            if file_path.suffix.lower() not in self.allowed_extensions:
+                errors.append("File extension not allowed")
+        
+        # Calculate file hash
+        try:
+            with open(file_path, "rb") as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
         except Exception as e:
-            logger.error(f"File validation error: {str(e)}")
-            raise ValueError(f"File validation failed: {str(e)}")
+            errors.append(f"Error calculating file hash: {str(e)}")
+            file_hash = "0" * 64
+        
+        # MIME type detection
+        try:
+            mime_type = self.mime.from_file(str(file_path))
+        except Exception as e:
+            errors.append(f"Error detecting MIME type: {str(e)}")
+            mime_type = None
+        
+        # Category validation
+        category = None
+        if mime_type:
+            for cat, allowed_types in self.ALLOWED_TYPES.items():
+                if mime_type in allowed_types:
+                    category = cat
+                    break
+            
+            if category is None:
+                errors.append(f"Unsupported MIME type: {mime_type}")
+            elif allowed_categories and category not in allowed_categories:
+                errors.append(f"File category {category} not allowed")
+        
+        # Create validation result
+        return FileValidationResult(
+            is_valid=len(errors) == 0,
+            category=category,
+            mime_type=mime_type,
+            size=size,
+            hash=file_hash,
+            errors=errors
+        )
+    
+    def get_safe_filename(self, filename: str) -> str:
+        """Generate a safe version of a filename
+        
+        Args:
+            filename: Original filename
+            
+        Returns:
+            Sanitized filename
+        """
+        # Remove potentially dangerous characters
+        safe_chars = re.sub(r'[^a-zA-Z0-9._-]', '', filename)
+        
+        # Ensure filename isn't empty
+        if not safe_chars:
+            return "unnamed_file"
+            
+        return safe_chars
     
     def _get_file_category(self, mime_type: str) -> Optional[FileCategory]:
         """Determine file category from MIME type"""

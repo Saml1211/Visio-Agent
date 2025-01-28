@@ -16,6 +16,8 @@ from .exceptions import (
     AuthenticationError, ServiceExecutionError
 )
 import httpx
+from langgraph.graph import StateGraph
+from langgraph.prebuilt import ToolNode
 
 logger = logging.getLogger(__name__)
 
@@ -165,3 +167,17 @@ class LLMOrchestrator(BaseService):
                 logger.warning(f"Service {name} health check failed: {str(e)}")
                 status[name] = "unavailable"
         return status 
+
+class HybridOrchestrator:
+    def __init__(self):
+        self.langgraph_flow = create_visio_workflow()
+        self.legacy_orchestrator = RefinementOrchestrator()
+        
+    async def process(self, input_data):
+        try:
+            # Try LangGraph first
+            async for step in self.langgraph_flow.astream(input_data):
+                yield step
+        except LangGraphError:
+            # Fallback to legacy
+            return await self.legacy_orchestrator.process(input_data) 

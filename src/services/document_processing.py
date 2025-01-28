@@ -9,6 +9,10 @@ import re
 from security import SecurityError
 import logging
 import io
+from tenacity import retry, wait_exponential
+from src.utils.retry_logic import jina_retry
+from jina import Client
+from config import config
 
 logger = logging.getLogger(__name__)
 
@@ -157,3 +161,18 @@ class AdvancedDocumentProcessor:
     def _detect_document_type(self, file_path: str) -> str:
         """Detect document type based on file extension"""
         return "pdf"
+
+class JinaProcessor:
+    def __init__(self):
+        self.client = Client(
+            host="jina:54321",
+            **config.JINA_CONFIG
+        )
+
+    @jina_retry()
+    async def process(self, content):
+        return await self.client.post(
+            "/process",
+            inputs=content,
+            compression="gzip"
+        )

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, TypedDict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +10,10 @@ from .rag_memory_service import RAGMemoryService
 from .visio_generation_service import VisioGenerationService
 from .self_learning_service import SelfLearningService
 from .ai_services.vertex_ai_service import VertexAIService
+from multi_agent_orchestrator import Orchestrator, Message
+from .visio_agents import VisioGenerationAgent, ValidationAgent
+from langgraph.graph import StateGraph
+from langgraph.prebuilt import ToolNode
 
 logger = logging.getLogger(__name__)
 
@@ -393,3 +397,63 @@ class RefinementOrchestrator:
             )
         else:
             return await super().refine_diagram(current_state) 
+
+class VisioOrchestrator(Orchestrator):
+    def __init__(self, config):
+        super().__init__(config)
+        self.register_agent(VisioGenerationAgent())
+        self.register_agent(ValidationAgent())
+        # Add other agents
+        
+    async def process_request(self, user_input):
+        """MAO-enhanced processing flow"""
+        context = self.create_context(user_input)
+        
+        # Agent chain
+        await self.route(
+            initial_message=Message(
+                content=user_input,
+                context=context
+            ),
+            routing_sequence=[
+                "document_parser",
+                "visio_generator", 
+                "validation_engine",
+                "output_handler"
+            ]
+        )
+        return context.get_final_output() 
+
+class VisioWorkflowState(TypedDict):
+    raw_content: str
+    processed_data: dict
+    visio_components: list
+    diagram_path: str
+    validation_results: dict
+    user_feedback: list
+
+def create_visio_workflow():
+    builder = StateGraph(VisioWorkflowState)
+    
+    # Define nodes
+    builder.add_node("ingest", DocumentIngestionTool())
+    builder.add_node("process", DocumentProcessorTool())
+    builder.add_node("generate", VisioGenerationTool())
+    builder.add_node("validate", ComplianceValidatorTool())
+    builder.add_node("export", ExportHandlerTool())
+    
+    # Define edges
+    builder.set_entry_point("ingest")
+    builder.add_edge("ingest", "process")
+    builder.add_conditional_edges(
+        "process",
+        lambda state: "generate" if state["processed_data"] else "error"
+    )
+    builder.add_edge("generate", "validate")
+    builder.add_conditional_edges(
+        "validate",
+        lambda state: "export" if state["validation_results"]["valid"] else "generate"
+    )
+    builder.add_edge("export", END)
+    
+    return builder.compile() 

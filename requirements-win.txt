@@ -1,5 +1,22 @@
 -r base-requirements.txt
-pywin32==306  # Windows COM support
-pythoncom==0.0.1
-grpcio>=1.62.0; sys_platform == "win32"
-protobuf>=3.20.0,<5.0.0; sys_platform == "win32" 
+
+# Windows-specific dependencies
+pywin32==306; platform_system == "Windows"
+pythoncom==0.0.1; platform_system == "Windows"
+grpcio==1.62.0; platform_system == "Windows"
+protobuf==3.20.3; platform_system == "Windows"  # Fixed version for compatibility
+
+# Windows alternatives for Mac brew packages
+python-magic-bin==0.4.14; platform_system == "Windows"
+pdf2image==1.17.0; platform_system == "Windows"
+opencv-python-headless==4.9.0.80; platform_system == "Windows"
+pytesseract==0.3.10; platform_system == "Windows"  # Requires manual Tesseract installation
+
+# Windows-specific ML dependencies
+torch==2.2.2+cu118; platform_system == "Windows"  # CUDA 11.8 support
+torchvision==0.17.0+cu118; platform_system == "Windows"
+numpy==1.24.3; platform_system == "Windows"
+
+# Windows system integration
+pywinauto==0.6.8; platform_system == "Windows"
+pyautogui==0.9.54; platform_system == "Windows" 

@@ -295,39 +295,58 @@ Provide detailed explanations for non-obvious mappings."""
     
     def _parse_mapping_response(
         self,
-        response: str,
+        response_content: str,
         mapping_type: MappingType
     ) -> List[MappingResult]:
-        """Parse LLM response into mapping results
+        """Parse and validate AI mapping response
         
         Args:
-            response: LLM response string
-            mapping_type: Type of mapping
+            response_content: Raw response from AI
+            mapping_type: Type of mapping being performed
             
         Returns:
-            List of mapping results
+            List of validated mapping results
+            
+        Raises:
+            ValidationError: If response format is invalid
         """
         try:
-            # Extract JSON from response
-            response_data = json.loads(response)
+            # Parse JSON response
+            mapping_data = json.loads(response_content)
             
+            # Validate response structure
+            if not isinstance(mapping_data, list):
+                raise ValidationError("Mapping response must be a list")
+                
             mappings = []
-            for mapping in response_data["mappings"]:
-                result = MappingResult(
-                    source_field=mapping["source_field"],
-                    target_field=mapping["target_field"],
-                    value=mapping["value"],
-                    confidence_score=mapping["confidence_score"],
+            for item in mapping_data:
+                # Validate required fields
+                if not all(k in item for k in ["source_field", "target_field", "confidence"]):
+                    raise ValidationError(
+                        "Each mapping must contain source_field, target_field, and confidence"
+                    )
+                
+                # Validate confidence score
+                if not isinstance(item["confidence"], (int, float)) or \
+                   not 0 <= item["confidence"] <= 1:
+                    raise ValidationError("Confidence must be a float between 0 and 1")
+                
+                # Create validated mapping result
+                mapping = MappingResult(
+                    source_field=str(item["source_field"]),
+                    target_field=str(item["target_field"]),
+                    confidence=float(item["confidence"]),
                     mapping_type=mapping_type,
-                    timestamp=datetime.now()
+                    metadata=item.get("metadata", {})
                 )
-                mappings.append(result)
+                mappings.append(mapping)
             
             return mappings
             
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"Invalid JSON in mapping response: {str(e)}")
         except Exception as e:
-            logger.error(f"Error parsing mapping response: {str(e)}")
-            return []
+            raise ValidationError(f"Error parsing mapping response: {str(e)}")
 
 # Limitations:
 # 1. No support for complex data transformations

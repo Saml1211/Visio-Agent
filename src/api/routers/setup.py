@@ -2,6 +2,7 @@ from http.client import HTTPException
 import os
 from fastapi import APIRouter, HTTPException
 from src.services.secure_config import ConfigManager
+from .monitoring import jina_health
 
 router = APIRouter()
 config_manager = ConfigManager()
@@ -23,4 +24,6 @@ async def complete_setup(config: dict):
         })
         return {"status": "configured"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+router.include_router(jina_health.router) 

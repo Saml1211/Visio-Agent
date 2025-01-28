@@ -12,6 +12,7 @@ import pytesseract
 from datetime import datetime
 from .ai_service_config import AIServiceManager
 from .rag_memory_service import RAGMemoryService
+from .exceptions import ScreenshotError
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +250,7 @@ class ScreenshotService:
             
         except Exception as e:
             logger.error(f"Error storing screenshot: {str(e)}")
-            raise
+            raise ScreenshotError(f"Failed to store screenshot: {str(e)}")
     
     def monitor_visual_changes(
         self,

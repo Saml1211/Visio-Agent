@@ -1,6 +1,8 @@
 from screenpipe import PipeClient
 from browserbase import Browser, Script
 from services.data_ingestion import JinaReaderService
+from langchain.tools import tool
+from .avixa_validator import AVIXAComplianceEngine
 
 class TechSpecsService:
     def __init__(self, llm_analyze, browser, jina_reader: JinaReaderService):
@@ -64,3 +66,17 @@ class TechSpecsService:
             }}
         """))
         return result 
+
+@tool
+def validate_av_compliance(state: VisioWorkflowState):
+    """Validates diagram against AV/IX standards"""
+    validator = AVIXAComplianceEngine()
+    report = validator.validate(
+        diagram_path=state["diagram_path"],
+        spec_version=state.get("spec_version", "CTS-4.0")
+    )
+    return {
+        "valid": report.is_compliant,
+        "issues": report.issues,
+        "spec_version": report.spec_version
+    } 

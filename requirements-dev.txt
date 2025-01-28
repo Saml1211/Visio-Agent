@@ -1,0 +1,35 @@
+-r base-requirements.txt
+
+# Code quality and formatting
+black==21.7b0
+isort==5.9.3
+flake8==3.9.2
+mypy==0.910
+pylint==2.17.5
+bandit==1.7.5
+safety==2.3.5
+
+# Testing
+pytest==7.0.1
+pytest-asyncio==0.16.0
+pytest-cov==2.12.1
+pytest-mock==3.6.1
+pytest-xdist==2.5.0  # Parallel testing
+pytest-timeout==2.1.0  # Test timeouts
+coverage==6.2
+
+# Documentation
+sphinx==4.3.2
+sphinx-rtd-theme==1.0.0
+sphinx-autodoc-typehints==1.12.0
+
+# Dependency management
+pip-tools==7.3.0
+pipdeptree==2.13.0
+pip-audit==2.6.1
+
+# Development utilities
+ipython==8.12.0
+jupyter==1.0.0
+debugpy==1.6.7  # For VS Code debugging
+pre-commit==3.5.0 
