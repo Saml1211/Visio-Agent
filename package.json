@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "verify": "bash scripts/verify_dependencies.sh && python scripts/validate_env.py && python -m pytest tests/verify_installation.py"
+  }
+} 

@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from typing import List, Dict
 import re
+import platform
 
 class EnvironmentValidator:
     """Enforces environment configuration standards"""
@@ -11,12 +12,20 @@ class EnvironmentValidator:
             'min_length': 32,
             'generator': 'openssl rand -hex 32'
         },
-        'VISIO_LICENSE_KEY': {
-            'pattern': r'^VISIO\d{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$'
-        },
         'API_BASE_URL': {
             'is_url': True
         }
+    }
+
+    PLATFORM_CHECKS = {
+        "Windows": [
+            ("VISIO_EXE_PATH", r"\\VISIO\.EXE$"),
+            ("TEMPLATES_DIR", "data/templates")
+        ],
+        "Darwin": [
+            ("VISIO_EXE_PATH", r"Microsoft Visio\.app$"),
+            ("UPLOAD_DIR", "temp/uploads")
+        ]
     }
 
     def __init__(self):
@@ -36,10 +45,22 @@ class EnvironmentValidator:
         if len(jwt_secret) < 32:
             errors['JWT_SECRET'] = ['Must be at least 32 characters']
             
-        # Validate Visio license format
-        if not re.match(self.REQUIRED_VARS['VISIO_LICENSE_KEY']['pattern'], 
-                       os.getenv('VISIO_LICENSE_KEY', '')):
-            errors['VISIO_LICENSE_KEY'] = ['Invalid license format']
+        return errors
+
+    def validate_paths(self):
+        system = platform.system()
+        errors = {}
+        
+        for var, pattern in self.PLATFORM_CHECKS.get(system, []):
+            path = os.getenv(var)
+            if path and not re.search(pattern, path):
+                errors[var] = [f"Invalid path pattern: {path}"]
+            
+        # Check write permissions
+        for dir_var in ['UPLOAD_DIR', 'OUTPUT_DIR']:
+            dir_path = os.getenv(dir_var)
+            if dir_path and not os.access(dir_path, os.W_OK):
+                errors[dir_var] = ["Directory not writable"]
             
         return errors
 

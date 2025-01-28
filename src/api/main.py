@@ -23,6 +23,8 @@ from ..services.ai_service_config import AIServiceManager
 from ..services.rag_memory_service import RAGMemoryService
 from ..services.visio_generation_service import VisioGenerationService
 from ..services.self_learning_service import SelfLearningService
+from src.services.visio_check import verify_visio_installation
+from src.services.workflow_verifier import WorkflowVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,16 @@ redis_client = redis.from_url("redis://localhost", encoding="utf-8", decode_resp
 @app.on_event("startup")
 async def startup():
     await FastAPILimiter.init(redis_client)
+    
+    # Critical system verification
+    verify_visio_installation()
+    
+    # Component workflow validation
+    verifier = WorkflowVerifier()
+    results = verifier.verify()
+    
+    if any("✗" in result for component in results.values() for result in component):
+        raise RuntimeError("System verification failed - check component status")
 
 class ProcessRequest(BaseModel):
     """Request model for document processing"""

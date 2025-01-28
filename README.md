@@ -323,3 +323,19 @@ Key AV Considerations:
 3. Signal flow validation rules
 4. Rack space optimization profiles
 5. Cable management best practices
+
+### System Requirements
+- **Microsoft Visio 2021+** installed locally
+- Office Click-to-Run installation
+- .NET Framework 4.8+ (Windows)
+- COM interoperability enabled
+
+### Visio Path Configuration
+Configure in `.env` if using non-standard installation:
+```env
+# Windows
+VISIO_EXE_PATH="C:\Custom\Path\VISIO.EXE"
+
+# macOS
+VISIO_EXE_PATH="/Applications/Custom Visio.app"
+```
