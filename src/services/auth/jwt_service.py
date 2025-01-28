@@ -2,9 +2,9 @@ import os
 from typing import Optional, Dict, Any
 import jwt
 from fastapi import HTTPException
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings, Field, BaseModel
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, SecurityScopes
 from datetime import datetime, timedelta
 import logging
 from jose import JWTError, jwt
@@ -12,6 +12,8 @@ from passlib.context import CryptContext
 from multi_agent_orchestrator import OrchestratorClaims
 from langgraph.security import GraphPolicy
 from starlette import status
+from cryptography.fernet import Fernet
+import secrets
 
 # Configure structured JSON logging
 logger = logging.getLogger(__name__)
@@ -140,4 +142,51 @@ OrchestratorClaims.add_required_claims(
 GraphPolicy.register(
     "visio_workflow",
     requires=["visio:generate", "workflow:manage"]
-) 
+)
+
+# Configuration model for type safety
+class TokenSettings(BaseModel):
+    secret_key: str
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
+class JWTService:
+    def __init__(self, settings: TokenSettings):
+        self.settings = settings
+        if len(settings.secret_key) < 32:
+            raise ValueError("Secret key must be at least 32 characters")
+
+    def create_token(self, subject: str, scopes: list[str] = []) -> str:
+        expires_delta = timedelta(minutes=self.settings.access_token_expire_minutes)
+        to_encode = {
+            "sub": subject,
+            "scopes": scopes,
+            "exp": datetime.utcnow() + expires_delta
+        }
+        return jwt.encode(
+            to_encode,
+            self.settings.secret_key,
+            algorithm=self.settings.algorithm
+        )
+
+    def validate_token(self, security_scopes: SecurityScopes, token: str) -> dict:
+        try:
+            payload = jwt.decode(
+                token,
+                self.settings.secret_key,
+                algorithms=[self.settings.algorithm]
+            )
+            token_scopes = payload.get("scopes", [])
+            for scope in security_scopes.scopes:
+                if scope not in token_scopes:
+                    raise JWTError("Insufficient permissions")
+            return payload
+        except JWTError as e:
+            # Detailed error logging
+            logger.error(f"JWT validation failed: {str(e)}")
+            raise
+
+    @classmethod
+    def generate_secure_key(cls) -> str:
+        """Generate a secure 32-character secret key"""
+        return secrets.token_urlsafe(32) 
