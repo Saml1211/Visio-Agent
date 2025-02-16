@@ -23,6 +23,11 @@ An advanced AI-powered system for automating the generation and maintenance of p
 
 ### Installation
 
+#### Windows Users
+For detailed Windows installation instructions, please see our [Windows Installation Guide](docs/windows_installation.md).
+
+#### General Installation
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/yourusername/visio-agent.git
