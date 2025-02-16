@@ -1,43 +1,13 @@
+# Docker Compose configuration for Visio Agent
+
 services:
-  supabase:
-    image: supabase/postgres
-    ports:
-      - "5432:5432"
-      - "3000:3000" # Studio
-      - "8000:8000" # Auth
-    environment:
-      POSTGRES_PASSWORD: secret
-      STUDIO_PASSWORD: secret
-      ENABLE_VECTOR: 'true'
-      ENABLE_RLS: 'true'
-      JWT_SECRET: ${JWT_SECRET}
-      SITE_URL: ${VISIO_HOST}
-    volumes:
-      - supabase_data:/var/lib/postgresql/data
-      - ./supabase/migrations:/supabase/migrations
-
-volumes:
-  supabase_data:
-
-  vector_extension:
-    image: ankane/pgvector
-    depends_on:
-      - supabase
-    environment:
-      POSTGRES_URL: postgres://postgres:secret@supabase:5432/postgres 
-
-  visio-agent:
-    environment:
-      - CONFIG_KEY=${CONFIG_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-    volumes:
-      - ${DATA_PATH:-./data}:/app/data 
-
   postgres:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: visio
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -49,6 +19,8 @@ volumes:
   redis:
     image: redis:7-alpine
     command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -57,6 +29,36 @@ volumes:
       timeout: 3s
       retries: 5
 
+  visio-agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - CONFIG_KEY=${CONFIG_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEBUG=${DEBUG}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ${DATA_PATH:-./data}:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  vector_extension:
+    image: ankane/pgvector
+    environment:
+      POSTGRES_URL: postgres://postgres:${DB_PASSWORD}@postgres:5432/postgres
+    depends_on:
+      - postgres
+
   collaboration:
     image: visio-collab-service:latest
     environment:
@@ -64,7 +66,7 @@ volumes:
       MAX_CONNECTIONS: 500
     depends_on:
       redis:
-        condition: service_healthy 
+        condition: service_healthy
 
   jina:
     image: jinaai/jina:latest
@@ -74,4 +76,8 @@ volumes:
       test: ["CMD", "curl", "-f", "http://localhost:54321/ready"]
       interval: 30s
       timeout: 10s
-      retries: 3 
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data: 

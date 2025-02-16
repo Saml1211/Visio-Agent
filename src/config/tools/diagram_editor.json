@@ -1,0 +1,41 @@
+{
+    "name": "diagram_editor",
+    "title": "Diagram Editor",
+    "description": "Create and edit AV system diagrams with an intuitive interface",
+    "version": "1.0.0",
+    "features": [
+        "Interactive diagram creation",
+        "Component drag-and-drop",
+        "Auto-layout capabilities",
+        "Real-time collaboration",
+        "Version control"
+    ],
+    "supported_formats": [
+        "vsdx",
+        "svg",
+        "png",
+        "pdf"
+    ],
+    "default_settings": {
+        "grid_size": 20,
+        "snap_to_grid": true,
+        "show_rulers": true,
+        "auto_save": true,
+        "auto_save_interval": 300
+    },
+    "shortcuts": {
+        "save": "Ctrl+S",
+        "undo": "Ctrl+Z",
+        "redo": "Ctrl+Y",
+        "delete": "Delete",
+        "copy": "Ctrl+C",
+        "paste": "Ctrl+V"
+    },
+    "ui_components": {
+        "toolbar": true,
+        "component_palette": true,
+        "property_panel": true,
+        "layer_panel": true,
+        "minimap": true
+    }
+} 

@@ -1,166 +1,187 @@
-# Cursor AI Rules for LLD Automation Project
+# Updated Cursor AI Rules for LLD Automation Project
 
-This document outlines the rules and guidelines for Cursor AI to follow when generating and modifying code for the LLD Automation Project. These rules are designed to ensure code quality, consistency, maintainability, and adherence to project-specific standards.
+This document outlines the updated rules and guidelines for Cursor AI to follow when generating and modifying code for the LLD Automation Project. These rules are designed to ensure the highest levels of code quality, consistency, maintainability, robustness, and adherence to project-specific standards, now reflecting our advanced understanding of the system.
 
-## I. General Coding Style
+## I. General Coding Style (Enforce Best Practices)
 
-**1. Language-Specific Style Guides:**
+**1. Language-Specific Style Guides (Strict Adherence):**
 
-*   **Python:** Adhere strictly to PEP 8 style guidelines for Python code. Use tools like `flake8` and `pylint` to enforce PEP 8 compliance.
-*   **TypeScript:** Follow standard TypeScript coding conventions and best practices. Use `ESLint` and `Prettier` to enforce code style and formatting.
-*   **Markdown:** Use consistent Markdown formatting for documentation files (e.g., README.md, service-level docs).
+*   **Python:**  Mandatory adherence to **PEP 8**. Code MUST be compliant. Use `flake8`, `pylint`, and `mypy` in CI/CD pipelines to enforce PEP 8, code quality, and type hinting. No exceptions.
+*   **TypeScript:** Mandatory adherence to established TypeScript conventions. Code MUST be clean and idiomatic. Use `ESLint` and `Prettier` in CI/CD pipelines to enforce code style, formatting, and best practices. No exceptions.
+*   **Markdown:**  Strictly use consistent Markdown formatting for ALL documentation.  Ensure all documentation is clear, concise, and well-structured.
 
-**2. Code Formatting:**
+**2. Code Formatting (Automated Enforcement):**
 
-*   **Indentation:** Use 4 spaces for Python indentation and 2 spaces for TypeScript/JavaScript indentation.
-*   **Line Length:** Limit lines to a maximum of 120 characters for Python and 100 characters for TypeScript/JavaScript.
-*   **Whitespace:** Use consistent whitespace for readability (e.g., spaces around operators, blank lines to separate logical code blocks).
-*   **Formatting Tools:** Use `Black` for Python code formatting and `Prettier` for TypeScript/JavaScript code formatting.  Cursor AI should automatically apply these formatters where possible.
+*   **Indentation:** Python: 4 spaces. TypeScript/JavaScript: 2 spaces.  No deviations allowed.
+*   **Line Length:** Python: Max 120 characters. TypeScript/JavaScript: Max 100 characters. Hard limits.
+*   **Whitespace:** Consistent whitespace is MANDATORY for readability.  Enforce with linters and formatters.
+*   **Formatting Tools:**  **Black** for Python and **Prettier** for TypeScript/JavaScript MUST be used and configured to run automatically on every save and commit.
 
-**3. Naming Conventions:**
+**3. Naming Conventions (Descriptive and Consistent):**
 
-*   **Variables:** Use descriptive and meaningful variable names.
-    *   Python: `snake_case` (e.g., `data_ingestion_module`)
-    *   TypeScript/JavaScript: `camelCase` (e.g., `documentProcessorService`)
-*   **Functions/Methods:** Use descriptive names that clearly indicate the function's purpose.
-    *   Python: `snake_case` (e.g., `extract_text_from_pdf`)
-    *   TypeScript/JavaScript: `camelCase` (e.g., `handleFileUpload`)
-*   **Classes:** Use `PascalCase` for class names.
-    *   Python: `DocumentProcessorService`
-    *   TypeScript/JavaScript: `VisioGenerationModule`
-*   **Modules/Files:** Use descriptive names for modules and files, reflecting their content and purpose.
+*   **Variables:**  Descriptive, meaningful, and contextually relevant names are REQUIRED.
+    *   Python: `snake_case` (e.g., `data_ingestion_module`, `visio_diagram_generator`)
+    *   TypeScript/JavaScript: `camelCase` (e.g., `documentProcessorService`, `handleFileUpload`)
+*   **Functions/Methods:**  Descriptive verbs indicating function purpose.  Names MUST clearly convey function's action and intent.
+    *   Python: `snake_case` (e.g., `extract_text_from_pdf`, `validate_shape_properties`)
+    *   TypeScript/JavaScript: `camelCase` (e.g., `generateVisioDiagram`, `processUserFeedback`)
+*   **Classes:** `PascalCase` for all class names.  Class names MUST be nouns describing the object's role.
+    *   Python: `DocumentProcessorService`, `RAGMemoryIntegrationModule`
+    *   TypeScript/JavaScript: `VisioGenerationModule`, `AIServiceConfig`
+*   **Modules/Files:** Descriptive names reflecting content and purpose. `snake_case` for Python, `PascalCase` for TypeScript/React components.
 
-## II. Documentation Rules
+## II. Documentation Rules (Mandatory and Comprehensive)
 
-**1. Code Comments:**
+**1. Code Comments (Rationale and Context - Not Just Description):**
 
-*   **Meaningful Comments:** Add comments to explain complex logic, non-obvious code sections, and design decisions. Focus on explaining the *why*, not just the *what*.
-*   **Concise Comments:** Keep comments concise and to the point. Avoid redundant comments that simply restate the code.
-*   **Consistent Style:** Use a consistent style for comments (e.g., full sentences, starting with a capital letter).
+*   **Explain Rationale:** Comments MUST explain the *why* behind the code, design decisions, algorithms, and complex logic.  Do not just describe *what* the code does.
+*   **Context is Key:** Provide context and background information to help other developers understand the code's purpose, assumptions, and limitations.
+*   **Conciseness and Clarity:**  Comments should be concise yet informative, adding value beyond what the code itself conveys.
 
-**2. Docstrings (Python):**
+**2. Docstrings (Python - Google Style, Exhaustive):**
 
-*   **Comprehensive Docstrings:** Write comprehensive docstrings for all Python functions, classes, and modules.
-*   **Google Style Docstrings:** Follow the Google Python Style Guide for docstring formatting.
-*   **Include Parameters, Returns, and Exceptions:** Docstrings must clearly document function parameters, return values, and potential exceptions.
-*   **Examples in Docstrings:** Include code examples in docstrings to illustrate function usage where appropriate.
+*   **Google Style Docstrings:**  **Mandatory** Google Python Style Guide for ALL Python docstrings. No exceptions.
+*   **Comprehensive Detail:** Docstrings MUST be exhaustive, explaining:
+    *   **Function/Class Purpose:** A clear and concise summary of the function or class's role.
+    *   **Parameters:**  Detailed descriptions of all parameters, including types, purpose, and valid ranges/values.
+    *   **Return Values:**  Clear descriptions of all return values, including types and possible values.
+    *   **Exceptions:** Document ALL potential exceptions that can be raised and under what conditions.
+    *   **Usage Examples:** Include code examples in docstrings to illustrate common use cases and demonstrate how to use the function or class correctly.
 
-**3. README.md Files:**
+**3. README.md Files (Project, Module, Service Level):**
 
-*   **Project-Level README:** Maintain a comprehensive `README.md` file at the project root, providing a high-level overview of the system, setup instructions, usage examples, and developer documentation links.
-*   **Module-Level READMEs (Optional):** Consider adding `README.md` files within key modules to provide more detailed documentation for specific components.
+*   **Project-Level README (Root Directory):**  **Mandatory** and MUST be comprehensive:
+    *   **Project Overview:** High-level description of the LLD Automation System and its goals.
+    *   **Key Features:**  List of core features and functionalities.
+    *   **Architecture Overview:**  High-level architectural diagram and explanation of key components and data flow.
+    *   **Setup Instructions (Beginner-Friendly, Cross-Platform):**  Detailed, step-by-step setup instructions for macOS and Windows, assuming basic developer knowledge but no prior experience with the project. Include all dependencies, environment setup, and running instructions.
+    *   **Usage Instructions (Step-by-Step, Examples):**  Clear, step-by-step usage instructions with practical examples for common LLD generation workflows and individual module usage.
+    *   **Developer Documentation Links:**  Link to more detailed API documentation, service-level docs, and developer guides.
+    *   **Contribution Guidelines:**  Clear guidelines for contributing to the project.
+    *   **License Information:**  Specify the project license.
+*   **Module-Level READMEs (`src/services`, `src/workflows`, etc.):**  **Highly Recommended** for complex modules:
+    *   **Module Purpose:**  Detailed explanation of the module's role and responsibilities within the system.
+    *   **Component Overview:**  Description of key classes, functions, and components within the module.
+    *   **Configuration Options:**  Documentation of all configurable parameters and settings for the module.
+    *   **Usage Examples:**  Code examples demonstrating how to use the module's APIs and functionalities.
+    *   **Dependencies:**  List of dependencies specific to the module.
 
-**4. API Documentation:**
+**4. API Documentation (Automated and Published):**
 
-*   **Generate API Docs:** Utilize FastAPI's built-in support for Swagger/OpenAPI to automatically generate API documentation for the backend API.
-*   **Publish API Docs:** Publish API documentation online or make it easily accessible to developers who need to interact with the API.
+*   **Swagger/OpenAPI for FastAPI:**  **Mandatory** and MUST be automatically generated and published for the FastAPI backend API.
+*   **Comprehensive API Reference:** API documentation MUST be complete and include:
+    *   Detailed descriptions of all API endpoints (paths, methods, request/response formats).
+    *   Clear documentation of request parameters, request bodies, and response schemas (using OpenAPI specifications).
+    *   Authentication and authorization details.
+    *   Example requests and responses for each endpoint.
 
-## III. Testing Rules
+## III. Testing Rules (Rigorous and Automated)
 
-**1. Unit Tests:**
+**1. Unit Tests (Comprehensive and Isolated):**
 
-*   **Comprehensive Unit Tests:** Write unit tests for all core modules and services, focusing on testing individual functions and classes in isolation.
-*   **High Test Coverage:** Aim for high test coverage (80-90% or higher) to ensure that most code paths are tested.
-*   **Test Happy Paths and Error Cases:** Test both normal "happy path" scenarios and error conditions, edge cases, and boundary conditions.
-*   **Mock Dependencies:** Use mocking to isolate unit tests and avoid dependencies on external services or databases.
-*   **Descriptive Test Names:** Use clear and descriptive names for test functions that indicate what is being tested.
+*   **Full Coverage:**  Aim for **near 100% unit test coverage** for all core modules and services. No excuses for low coverage.
+*   **Test Every Function/Class:**  Every function and class MUST have dedicated unit tests.
+*   **Happy Paths and Error Cases:**  Test **both** happy path scenarios and ALL error conditions, edge cases, and boundary conditions.
+*   **Mocking for Isolation:**  **Mandatory** mocking of ALL external dependencies (APIs, databases, services) in unit tests to ensure tests are isolated, fast, and reproducible.  Use mocking frameworks effectively.
+*   **Descriptive Test Names (Clear and Intent-Revealing):** Test names MUST be clear, descriptive, and indicate the specific scenario or functionality being tested.  Follow a consistent naming convention (e.g., `test_function_name_scenario_expected_outcome`).
 
-**2. Integration Tests:**
+**2. Integration Tests (Workflow Validation):**
 
-*   **Integration Tests for Key Workflows:** Write integration tests to verify the interactions between different modules and services.
-*   **Test End-to-End Flows:** Test end-to-end workflows to ensure that the system functions correctly from data ingestion to output generation.
-*   **Database and API Integration Tests:** Include integration tests for database interactions and API calls to external services (use mock services where appropriate to avoid external dependencies in tests).
+*   **End-to-End Workflow Tests:**  Write integration tests to validate complete workflows, from data ingestion to output generation.
+*   **Component Interaction Tests:**  Test interactions between different modules and services to ensure seamless integration.
+*   **Real-World Scenarios:**  Design integration tests to simulate real-world LLD generation scenarios, using sample documents and data.
+*   **Data Validation in Integration Tests:**  Verify data flow and data integrity across different workflow steps in integration tests.
 
-**3. Test Automation:**
+**3. Test Automation (CI/CD Pipeline Integration):**
 
-*   **Automated Test Execution:** Set up automated test execution using CI/CD pipelines (e.g., GitHub Actions, GitLab CI).
-*   **Regular Test Runs:** Ensure tests are run automatically on every code commit and pull request.
-*   **Test Reporting:** Generate test reports and code coverage reports to track test results and identify areas lacking test coverage.
+*   **Automated Test Execution (Mandatory):**  Integrate automated test execution into a CI/CD pipeline (e.g., GitHub Actions).  Tests MUST run automatically on every code commit and pull request. No exceptions.
+*   **Test Reporting (Detailed and Actionable):** Generate detailed test reports and code coverage reports in the CI/CD pipeline.  Reports MUST be easily accessible and actionable, highlighting test failures and uncovered code areas.
+*   **Test Failure Blocking CI/CD:**  Configure the CI/CD pipeline to **fail the build** if any tests fail or if code coverage falls below a defined threshold.  This ensures that only code that passes all tests and meets coverage requirements is merged or deployed.
 
-**4. Test-Driven Development (TDD) (Recommended):**
+**4. Test-Driven Development (TDD) (Strictly Encouraged):**
 
-*   Consider adopting Test-Driven Development (TDD) practices for new code development. Write tests *before* writing the code to ensure comprehensive test coverage from the start.
+*   **TDD for New Code:**  **Strongly encourage** Test-Driven Development (TDD) for ALL new code development. Write tests **before** writing the code to ensure comprehensive test coverage from the outset.
+*   **Refactor Legacy Code for Testability:**  Refactor existing legacy code to improve testability and enable the addition of comprehensive unit tests.
 
-## IV. Error Handling Rules
+## IV. Error Handling Rules (Robust and Centralized)
 
-**1. Robust Exception Handling:**
+**1. Robust Exception Handling (Comprehensive and Specific):**
 
-*   **Specific Exception Handling:** Catch specific exceptions where possible rather than using broad `except Exception:` clauses.
-*   **Informative Error Messages:** Provide informative error messages that help developers diagnose and resolve issues.
-*   **Graceful Degradation (Where Possible):** Implement graceful degradation strategies to allow the system to continue operating in a reduced capacity if non-critical components fail.
+*   **Catch Specific Exceptions:**  **Mandatory** catching of specific exceptions whenever possible. Avoid generic `except Exception:` clauses unless absolutely necessary for top-level error handling.
+*   **Context-Rich Error Messages:**  Error messages MUST be informative and provide sufficient context for debugging, including:
+    *   Error type and description.
+    *   Location of the error (file, function, line number).
+    *   Relevant data or variables that caused the error.
+    *   Stack trace (where applicable).
+*   **Graceful Degradation (Prioritize User Experience):** Implement graceful degradation strategies to prevent catastrophic system failures.  If a non-critical component fails, the system should continue to operate in a reduced capacity, if possible, while informing the user of the issue.
 
-**2. Logging:**
+**2. Logging (Verbose, Structured, Centralized):**
 
-*   **Comprehensive Logging:** Implement logging at all levels (modules, services, API endpoints) to track system operation, errors, and performance.
-*   **Structured Logging (JSON):** Use structured logging (e.g., JSON logs) for easier analysis and integration with logging tools.
-*   **Log Levels:** Use appropriate log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL) to categorize log messages.
-*   **Include Context in Logs:** Include relevant context information in log messages (e.g., timestamp, module name, user ID, request ID).
-*   **Centralized Logging (Recommended):** Consider using a centralized logging system (e.g., ELK stack, Grafana Loki) to collect, analyze, and visualize logs from all components.
+*   **Verbose Logging (Capture All Relevant Information):** Implement **extremely verbose logging** to capture ALL relevant information about system operation, including:
+    *   Workflow execution steps (start and end times, inputs and outputs of each step).
+    *   API calls (requests and responses, latency, status codes).
+    *   Data transformations and processing steps.
+    *   Resource usage (memory, CPU, file I/O).
+    *   User interactions and feedback.
+    *   Errors and exceptions (with detailed tracebacks).
+*   **Structured Logging (JSON Format - Mandatory):**  Use **structured logging in JSON format** for ALL log messages. This is **mandatory** for easier analysis, filtering, and integration with logging tools.
+*   **Log Levels (Appropriate Use):** Use appropriate log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL) to categorize log messages based on severity and verbosity. Use DEBUG logging extensively during development and testing.
+*   **Centralized Logging (Highly Recommended):**  Implement a centralized logging system (e.g., ELK stack, Grafana Loki, cloud-based logging services) to collect, aggregate, analyze, and visualize logs from all components. This is **highly recommended** for production deployments and effective monitoring.
 
-**3. Error Reporting and Alerting:**
+**3. Error Reporting and Alerting (Proactive and User-Friendly):**
 
-*   **Error Reporting to UI:** Provide informative error messages to users in the UI when errors occur.
-*   **Alerting for Critical Errors:** Set up alerting mechanisms (e.g., email, Slack notifications) to notify developers of critical errors or service failures in production.
+*   **User-Friendly Error Messages (UI Integration):**  Provide clear and user-friendly error messages in the UI to inform users about issues and guide them on potential recovery actions. Avoid displaying raw stack traces or technical jargon to end-users.
+*   **Alerting for Critical Errors (Proactive Monitoring):** Set up alerting mechanisms (e.g., email, Slack, PagerDuty) to proactively notify developers of critical errors, service failures, or performance degradation in production.  Use monitoring tools to trigger alerts based on error rates, latency thresholds, and resource usage.
 
-## V. Modularity and Architecture Rules
+## V. Modularity and Architecture Rules (Clean Architecture Principles)
 
-**1. Modular Design:**
+**1. Modular Design (Strict Enforcement of Separation of Concerns):**
 
-*   **Separation of Concerns:** Adhere to the principle of separation of concerns by dividing the system into well-defined, independent modules and services.
-*   **Clear Interfaces:** Define clear interfaces for all modules and services to promote modularity and decoupling.
-*   **Dependency Injection (DI):** Use dependency injection to manage dependencies between components and improve testability and flexibility.
+*   **Strict Separation of Concerns:**  **Mandatory** adherence to the principle of separation of concerns.  Each module and service MUST have a well-defined, single responsibility.  Avoid mixing concerns within modules.
+*   **Clear Interfaces (Abstract Classes and Protocols):**  Define clear interfaces (using abstract classes in Python and interfaces/protocols in TypeScript) for ALL modules and services.  Modules MUST interact with each other only through these well-defined interfaces, promoting decoupling and modularity.
+*   **Dependency Injection (DI) (Mandatory for Decoupling):**  **Mandatory** use of Dependency Injection (DI) to manage dependencies between components.  Services MUST be injected into components that depend on them, rather than components creating service instances directly.  This promotes decoupling, testability, and flexibility.
 
-**2. Service-Oriented Architecture (Recommended):**
+**2. Service-Oriented Architecture (SOA) (Cloud-Native Design):**
 
-*   Design the system as a collection of independent, stateless services that communicate through well-defined APIs.
-*   This promotes scalability, maintainability, and independent deployment of services.
+*   **Stateless Services (Scalability and Resilience):** Design services to be stateless whenever possible to enhance scalability and resilience.  State should be managed externally (e.g., in databases, RAG memory, or distributed caches).
+*   **Well-Defined APIs (RESTful or gRPC):**  Services MUST communicate with each other through well-defined APIs (RESTful APIs using FastAPI for backend, potentially gRPC for inter-service communication).  APIs should be versioned and documented using OpenAPI/Swagger.
+*   **Independent Deployability:**  Services should be designed to be independently deployable and scalable. Containerization (Docker) and orchestration (Kubernetes) are **highly recommended** for production deployments.
 
-**3. Asynchronous Operations:**
+**3. Asynchronous Operations (Non-Blocking I/O Everywhere):**
 
-*   Utilize `async/await` for all I/O-bound operations (API calls, file operations, Visio automation) to ensure non-blocking operations and improve concurrency.
+*   **`async/await` for All I/O:**  **Mandatory** use of `async/await` for ALL I/O-bound operations (API calls, file operations, database access, Visio automation).  Code MUST be non-blocking to maximize concurrency and performance.
+*   **Concurrency and Parallelism:**  Leverage asynchronous programming to achieve concurrency and parallelism where appropriate (e.g., for handling multiple user requests, processing large datasets, or making concurrent API calls).
 
-**4. Configuration-Driven Design:**
+**4. Configuration-Driven Design (Externalized Configuration):**
 
-*   Externalize configuration settings (API keys, model names, file paths, feature flags) to configuration files or environment variables.
-*   This allows for easy customization and deployment without code changes.
+*   **Externalized Configuration (Mandatory):**  **Mandatory** externalization of ALL configuration settings (API keys, model names, file paths, feature flags, thresholds, logging levels, database connection strings) to configuration files (e.g., YAML, JSON) or environment variables.  Avoid hardcoding configuration values in code.
+*   **Configuration Validation (Schema-Based):**  Use schema validation (e.g., `pydantic` settings) to validate configuration files and ensure that required settings are provided and are in the correct format.
+*   **Environment-Specific Configurations:**  Support different configurations for different environments (development, testing, production) using environment variables or separate configuration files per environment.
 
-## VI. Project-Specific Rules (LLD Automation System)**
+## VI. Project-Specific Rules (LLD Automation System - Enforce Consistency and Quality)
 
-**1. Visio Diagram Conventions:**
+**1. Visio Diagram Conventions (Standardized and Documented):**
 
-*   **Stencil Usage:** Use predefined Visio stencils for AV components to ensure consistency and clarity in diagrams.
-*   **Connector Styles:** Use consistent connector styles (e.g., orthogonal, color-coded) to represent different signal types (audio, video, control, data).
-*   **Shape Data and Text Labels:**  Populate shapes with relevant data and use consistent text labels to identify components and their attributes.
-*   **Layering:** Utilize Visio layers to organize diagram elements and control visibility.
+*   **Stencil Usage (Enforce Consistency):**  **Mandatory** use of predefined Visio stencils for ALL AV components to ensure consistency and clarity across ALL diagrams.  Document the stencil library and enforce its use.
+*   **Connector Styles (Signal Type Representation):**  **Mandatory** use of consistent connector styles (orthogonal, curved, color-coded) to visually represent different signal types (audio, video, control, data). Document the connector style guide and enforce its use.
+*   **Shape Data and Text Labels (Data-Driven and Standardized):**  **Mandatory** data-driven population of shapes with relevant data and use of standardized text labels to identify components and their attributes.  Define clear data mapping conventions and enforce their use.
+*   **Layering (Diagram Organization and Control):**  **Mandatory** use of Visio layers to organize diagram elements and control visibility. Define a layer naming convention and enforce its use.
 
-**2. AI Service Configuration:**
+**2. AI Service Configuration (Centralized and Managed):**
 
-*   **Centralized AI Service Management:** Use the `AIServiceConfig` module to manage and configure all AI service providers (OpenAI, Hugging Face, etc.).
-*   **Consistent Prompt Design:** Follow consistent prompt engineering practices for all AI interactions.
-*   **Logging AI Service Calls:**  Log all AI API calls, including requests, responses, and performance metrics.
+*   **Centralized AI Service Management (AIServiceConfig Module):**  **Mandatory** use of the `AIServiceConfig` module to manage and configure ALL AI service providers (OpenAI, Hugging Face, etc.).  Do not hardcode API keys or model names directly in code.
+*   **Consistent Prompt Design (Prompt Engineering Standards):**  **Mandatory** adherence to consistent prompt engineering practices for ALL AI interactions.  Prompts should be well-documented, parameterized, and tested for robustness across different input data types.
+*   **Logging AI Service Calls (Verbose and Detailed):**  **Mandatory** and **extremely verbose logging** of ALL AI API calls, including requests, responses, latency, status codes, and any errors.  Detailed logging is crucial for monitoring AI service performance, debugging issues, and tracking costs.
 
-**3. RAG Memory Usage:**
+**3. RAG Memory Usage (Structured and Documented):**
 
-*   **Structured Data Storage in RAG:** Store project knowledge, design decisions, and web search results in the RAG memory in a structured format (e.g., JSON).
-*   **Clear RAG Querying Conventions:** Define clear conventions for querying the RAG memory to ensure consistent and effective information retrieval.
-*   **Metadata for RAG Entries:**  Include relevant metadata with RAG entries (e.g., source document, timestamp, keywords) to improve searchability and data management.
+*   **Structured Data Storage in RAG (Schema Enforcement):**  **Mandatory** structured storage of project knowledge, design decisions, and web search results in the RAG memory using well-defined schemas (e.g., `DocumentSchema`, `MemoryEntry` data models).  Enforce schema validation for all data stored in RAG memory.
+*   **Clear RAG Querying Conventions (Consistent API Usage):**  **Mandatory** adherence to clear querying conventions for the RAG memory to ensure consistent and effective information retrieval.  Document the RAG API and provide usage examples.
 
-**4. Testing Focus:**
+**4. Testing Focus (Visio Validation, AI Performance, Workflow Integration):**
 
-*   **Visio Diagram Validation Tests:** Prioritize writing tests that validate the visual correctness of generated Visio diagrams, including shape placement, connector routing, text labels, and styling.
-*   **AI Model Performance Tests:**  Include tests to monitor and evaluate the performance of AI models used in the system, tracking metrics like accuracy, latency, and bias.
-*   **Workflow Integration Tests:**  Thoroughly test end-to-end workflows to ensure all components integrate correctly and function as expected.
+*   **Visio Diagram Validation Tests (Prioritize Visual Correctness):**  **Mandatory** prioritization of writing tests that rigorously validate the visual correctness of generated Visio diagrams.  Tests MUST verify shape placement, connector routing, text labels, styling, and overall diagram quality.
+*   **AI Model Performance Tests (Accuracy and Reliability):**  **Mandatory** inclusion of tests to monitor and evaluate the performance of AI models used in the system.  Track metrics like accuracy, latency, and bias.  Implement tests to detect and alert on model drift.
+*   **Workflow Integration Tests (End-to-End Validation):**  **Mandatory** thorough testing of end-to-end workflows to ensure ALL components integrate correctly and function as expected.  Integration tests MUST cover data flow, error handling, and user interactions across the entire LLD generation process.
 
-By adhering to these rules and guidelines, Cursor AI can generate code that is high-quality, consistent, maintainable, and robust, contributing to the successful development of the LLD Automation Project.
-
-[security]
-allowed_origins = [
-    "https://app.visio-automation.com",
-    "https://collab.visio-automation.com"
-]
-jwt_algorithm = "HS256"
-jwt_scopes = {
-    "visio:generate": "Create new diagrams",
-    "workflow:manage": "Manage automation workflows",
-    "collab:edit": "Real-time collaboration"
-}
+By strictly adhering to these updated rules and guidelines, Cursor AI will be instrumental in generating code that is not only functional but also of the highest quality, ensuring the LLD Automation Project is robust, maintainable, scalable, and a valuable asset for AV system design and documentation.

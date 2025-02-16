@@ -2,14 +2,10 @@ import { WorkflowBuilder } from '@/components/workflow-builder'
 import { VisioViewer } from '@/components/visio-viewer'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/use-toast'
 
 export default function Home() {
-  const { toast } = useToast()
-  
   return (
     <div className="min-h-screen bg-muted/40">
       <header className="bg-background border-b">
@@ -56,4 +52,4 @@ export default function Home() {
       </main>
     </div>
   )
-} 
+}

@@ -1,0 +1,71 @@
+:root {
+  /* Color Palette */
+  --primary-color: #3182ce;
+  --primary-light: #4299e1;
+  --primary-dark: #2b6cb0;
+  --secondary-color: #718096;
+  --accent-color: #48bb78;
+  
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7fafc;
+  --bg-tertiary: #edf2f7;
+  
+  /* Text Colors */
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  
+  /* Border Colors */
+  --border-color: #e2e8f0;
+  --border-focus: #4299e1;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Typography */
+  --font-family: system-ui, -apple-system, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* Z-index layers */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal: 1040;
+  --z-popover: 1050;
+  --z-tooltip: 1060;
+  
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  
+  /* Component-specific */
+  --header-height: 4rem;
+  --sidebar-width: 16rem;
+  --toolbar-height: 3rem;
+  
+  /* NiceGUI specific overrides */
+  --nicegui-default-gap: var(--spacing-md);
+  --nicegui-card-radius: var(--radius-lg);
+  --nicegui-button-radius: var(--radius-md);
+  --nicegui-input-radius: var(--radius-md);
+} 

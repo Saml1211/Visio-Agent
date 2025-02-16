@@ -1,70 +1,86 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import ReactFlow, {
-  Controls,
-  Background,
-  applyNodeChanges,
-  applyEdgeChanges,
-  type Node,
-  type Edge,
-  type NodeChange,
-  type EdgeChange,
-  type Connection
-} from 'reactflow'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card } from '@/components/ui/card'
+import { useToast } from '@/components/ui/use-toast'
 
-export const WorkflowBuilder = () => {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes)
-  const [edges, setEdges] = useState<Edge[]>([])
+export function WorkflowBuilder() {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [workflow, setWorkflow] = useState({
+    name: '',
+    description: '',
+    steps: []
+  })
 
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => 
-      setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
-  )
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
 
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => 
-      setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
-  )
-
-  const onConnect = useCallback(
-    (connection: Connection) => 
-      setEdges((eds) => addEdge(connection, eds)),
-    []
-  )
-
-  const deployWorkflow = async () => {
     try {
-      const response = await fetch('/api/execute-workflow', {
+      const response = await fetch('/api/workflow', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nodes, edges })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(workflow),
       })
-      // Handle response
+
+      if (!response.ok) {
+        throw new Error('Failed to create workflow')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Workflow created successfully',
+      })
+
+      // Reset form
+      setWorkflow({
+        name: '',
+        description: '',
+        steps: []
+      })
     } catch (error) {
-      console.error('Workflow deployment failed:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create workflow',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="h-full">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
-      >
-        <Background />
-        <Controls />
-        <div className="absolute right-2 top-2">
-          <Button onClick={deployWorkflow}>Deploy Workflow</Button>
-        </div>
-      </ReactFlow>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Workflow Name</Label>
+        <Input
+          id="name"
+          value={workflow.name}
+          onChange={(e) => setWorkflow({ ...workflow, name: e.target.value })}
+          placeholder="Enter workflow name"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={workflow.description}
+          onChange={(e) => setWorkflow({ ...workflow, description: e.target.value })}
+          placeholder="Enter workflow description"
+          required
+        />
+      </div>
+      <Button type="submit" disabled={loading}>
+        {loading ? 'Creating...' : 'Create Workflow'}
+      </Button>
+    </form>
   )
 } 

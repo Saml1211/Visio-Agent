@@ -1,5 +1,15 @@
 {
+  "name": "visio-agent-ui",
+  "version": "1.0.0",
   "scripts": {
-    "verify": "bash scripts/verify_dependencies.sh && python scripts/validate_env.py && python -m pytest tests/verify_installation.py"
-  }
+    "verify": "bash scripts/verify_dependencies.sh && python scripts/validate_env.py && python -m pytest tests/verify_installation.py",
+    "start": "PORT=4200 react-scripts start",
+    "build": "react-scripts build"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "proxy": "http://127.0.0.1:8080"
 } 

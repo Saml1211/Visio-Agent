@@ -1,0 +1,69 @@
+{
+    "name": "document_processor",
+    "title": "Document Processor",
+    "description": "Process and analyze technical documentation for AV system specifications",
+    "version": "1.0.0",
+    "features": [
+        "Document OCR",
+        "Specification extraction",
+        "Component identification",
+        "Requirements analysis",
+        "Automated diagram generation"
+    ],
+    "supported_formats": {
+        "input": [
+            "pdf",
+            "docx",
+            "doc",
+            "txt",
+            "rtf",
+            "png",
+            "jpg"
+        ],
+        "output": [
+            "json",
+            "xml",
+            "csv",
+            "xlsx",
+            "pdf"
+        ]
+    },
+    "processing_options": {
+        "ocr": {
+            "enabled": true,
+            "engine": "tesseract",
+            "languages": ["eng"],
+            "enhance_image": true
+        },
+        "extraction": {
+            "components": true,
+            "connections": true,
+            "specifications": true,
+            "requirements": true
+        },
+        "analysis": {
+            "identify_components": true,
+            "extract_relationships": true,
+            "validate_specifications": true
+        }
+    },
+    "default_settings": {
+        "batch_processing": true,
+        "auto_categorize": true,
+        "save_intermediates": false,
+        "generate_summary": true
+    },
+    "ai_features": {
+        "component_recognition": true,
+        "spec_extraction": true,
+        "diagram_generation": true,
+        "requirement_analysis": true
+    },
+    "ui_components": {
+        "file_uploader": true,
+        "preview_panel": true,
+        "extraction_controls": true,
+        "results_viewer": true,
+        "export_options": true
+    }
+} 

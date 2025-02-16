@@ -1,0 +1,66 @@
+{
+    "name": "system_analyzer",
+    "title": "System Analyzer",
+    "description": "Analyze AV system diagrams for compatibility, efficiency, and best practices",
+    "version": "1.0.0",
+    "features": [
+        "Compatibility checking",
+        "Signal flow analysis",
+        "Power consumption calculation",
+        "Network bandwidth analysis",
+        "Best practices validation",
+        "Cost estimation"
+    ],
+    "analysis_types": [
+        {
+            "name": "compatibility",
+            "description": "Check component compatibility and connections",
+            "enabled": true
+        },
+        {
+            "name": "signal_flow",
+            "description": "Analyze signal paths and potential bottlenecks",
+            "enabled": true
+        },
+        {
+            "name": "power",
+            "description": "Calculate power requirements and distribution",
+            "enabled": true
+        },
+        {
+            "name": "network",
+            "description": "Analyze network topology and bandwidth requirements",
+            "enabled": true
+        },
+        {
+            "name": "standards",
+            "description": "Validate against industry standards and best practices",
+            "enabled": true
+        }
+    ],
+    "report_formats": [
+        "pdf",
+        "html",
+        "docx",
+        "json"
+    ],
+    "default_settings": {
+        "auto_analyze": true,
+        "real_time_validation": true,
+        "show_warnings": true,
+        "include_recommendations": true
+    },
+    "validation_rules": {
+        "compatibility": "strict",
+        "signal_quality": "high",
+        "power_margin": 20,
+        "network_overhead": 30
+    },
+    "ui_components": {
+        "analysis_panel": true,
+        "results_view": true,
+        "report_generator": true,
+        "issue_tracker": true,
+        "recommendation_panel": true
+    }
+} 

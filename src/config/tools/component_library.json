@@ -1,0 +1,50 @@
+{
+    "name": "component_library",
+    "title": "Component Library",
+    "description": "Manage and organize AV system components and templates",
+    "version": "1.0.0",
+    "features": [
+        "Component categorization",
+        "Custom component creation",
+        "Template management",
+        "Batch import/export",
+        "Version tracking"
+    ],
+    "component_categories": [
+        "Audio Equipment",
+        "Video Equipment",
+        "Control Systems",
+        "Network Devices",
+        "Display Systems",
+        "Infrastructure",
+        "Custom Components"
+    ],
+    "supported_formats": {
+        "import": ["svg", "png", "json", "xml"],
+        "export": ["svg", "png", "json", "xml", "pdf"]
+    },
+    "default_settings": {
+        "thumbnail_size": 128,
+        "grid_view": true,
+        "show_details": true,
+        "auto_categorize": true
+    },
+    "metadata_fields": [
+        "name",
+        "category",
+        "manufacturer",
+        "model",
+        "description",
+        "connections",
+        "power_requirements",
+        "dimensions",
+        "custom_properties"
+    ],
+    "ui_components": {
+        "search_bar": true,
+        "filter_panel": true,
+        "category_tree": true,
+        "details_panel": true,
+        "batch_operations": true
+    }
+} 
