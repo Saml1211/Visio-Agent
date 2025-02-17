@@ -1,171 +1,261 @@
 # Windows Installation Guide
 
-This guide provides detailed instructions for installing and running the Visio Agent on Windows systems.
+This guide provides detailed instructions for installing and configuring the Visio Agent on Windows systems.
 
-## System Requirements
+## Prerequisites
 
-- Windows 10 or Windows 11 (64-bit)
-- 8GB RAM minimum (16GB recommended)
-- 10GB free disk space
-- Administrator privileges
+### Required Software
+1. **Windows 10 or 11**
+   - Windows 10 version 1903 or later
+   - Windows 11 (any version)
+   - Both 64-bit versions only
 
-## Required Software
+2. **Microsoft Visio**
+   - Visio 2019 or later
+   - Professional or Standard edition
+   - Must be installed and activated
 
-1. **Python 3.8+**
-2. **Node.js 16+ LTS**
-3. **Microsoft Visio 2019 or later**
-4. **Git for Windows**
-5. **Microsoft Visual C++ Build Tools**
+3. **Python Environment**
+   - Python 3.8 or later (64-bit)
+   - pip (latest version)
+   - virtualenv or venv
 
-## Step-by-Step Installation
+4. **Git**
+   - Latest version from https://git-scm.com/
+   - Git Credential Manager configured
 
-### 1. Install Required Software
+5. **Visual Studio Build Tools**
+   - Visual C++ build tools
+   - Windows 10/11 SDK
 
-#### Python Installation
-1. Download [Python 3.8 or later](https://www.python.org/downloads/windows/)
-2. Run the installer
-   - ✅ Check "Add Python to PATH"
-   - ✅ Enable "py launcher"
-   - ✅ Enable "pip package installer"
-3. Verify installation:
-   ```cmd
+## System Configuration
+
+### 1. Enable Long Path Support
+
+Windows has a default path length limit of 260 characters. The Visio Agent may require longer paths, so we need to enable long path support:
+
+1. Open PowerShell as Administrator
+2. Run the following command:
+   ```powershell
+   Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+                    -Name "LongPathsEnabled" -Value 1
+   ```
+3. Restart your computer
+
+### 2. Configure Python
+
+1. **Install Python**
+   - Download Python from [python.org](https://www.python.org/downloads/)
+   - Check "Add Python to PATH" during installation
+   - Choose "Customize installation"
+   - Select all optional features
+   - Install for all users
+
+2. **Verify Installation**
+   ```bash
    python --version
    pip --version
    ```
 
-#### Node.js Installation
-1. Download [Node.js 16+ LTS](https://nodejs.org/)
-2. Run the installer with default settings
-3. Verify installation:
-   ```cmd
-   node --version
-   npm --version
-   ```
-
-#### Git Installation
-1. Download [Git for Windows](https://git-scm.com/download/windows)
-2. Run the installer with default settings
-3. Verify installation:
-   ```cmd
-   git --version
-   ```
-
-#### Visual C++ Build Tools
-1. Download [Microsoft Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-2. Run the installer
-3. Select "Desktop development with C++"
-4. Install selected components
-
-### 2. Microsoft Visio Setup
-
-1. Install Microsoft Visio 2019 or later
-2. Ensure you have a valid Microsoft 365 account
-3. Launch Visio once to complete initial setup
-4. Enable macros and ActiveX controls if prompted
-
-### 3. Project Setup
-
-1. **Clone Repository**:
-   ```cmd
-   git clone https://github.com/yourusername/visio-agent.git
-   cd visio-agent
-   ```
-
-2. **Create Virtual Environment**:
-   ```cmd
-   python -m venv venv
-   venv\Scripts\activate
-   ```
-
-3. **Install Dependencies**:
-   ```cmd
+3. **Update pip**
+   ```bash
    python -m pip install --upgrade pip
-   pip install wheel setuptools
-   pip install -r requirements.txt
    ```
 
-   If you encounter SSL errors:
-   ```cmd
-   pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+### 3. Install Build Tools
+
+1. **Using Visual Studio Installer**
+   - Download the [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+   - Run the installer
+   - Select "Desktop development with C++"
+   - Ensure "Windows 10/11 SDK" is selected
+   - Install
+
+2. **Alternative: Using Chocolatey**
+   ```powershell
+   # Install Chocolatey first if not installed
+   Set-ExecutionPolicy Bypass -Scope Process -Force
+   [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+   iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+   
+   # Install build tools
+   choco install visualstudio2019buildtools
+   choco install visualstudio2019-workload-vctools
    ```
 
-4. **Configure Environment**:
-   ```cmd
+## Installation Steps
+
+### 1. Prepare Installation Directory
+
+Choose a location with a short path, for example:
+```bash
+mkdir C:\Projects
+cd C:\Projects
+```
+
+### 2. Clone Repository
+
+```bash
+git clone https://github.com/yourusername/visio-agent.git
+cd visio-agent
+```
+
+### 3. Create Virtual Environment
+
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+### 4. Install Dependencies
+
+```bash
+# Upgrade pip in virtual environment
+python -m pip install --upgrade pip
+
+# Install wheels for binary packages
+pip install wheel
+
+# Install dependencies
+pip install --only-binary :all: -r requirements.txt
+```
+
+### 5. Verify Windows Requirements
+
+```bash
+python scripts/windows_checks.py
+```
+
+This script will verify:
+- Windows version compatibility
+- Microsoft Visio installation
+- Long path support
+- Other system requirements
+
+### 6. Configure Environment
+
+1. Copy example environment file:
+   ```bash
    copy .env.example .env
    ```
-   Edit `.env` file:
-   - Set `VISIO_EXE_PATH` (typically `C:\Program Files\Microsoft Office\root\Office16\VISIO.EXE`)
-   - Configure API keys and other settings
 
-5. **Run Application**:
-   ```cmd
-   python run.py
-   ```
+2. Edit `.env` with appropriate values:
+   - Set paths using Windows-style paths (use \\ or /)
+   - Configure Visio-specific settings
+   - Set up API keys and credentials
+
+### 7. Validate Installation
+
+```bash
+python validate_dependencies.py
+```
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+### Common Issues
 
-1. **Python Path Issues**
-   ```cmd
-   # Add to System Environment Variables:
-   C:\Users\YourUsername\AppData\Local\Programs\Python\Python3x
-   C:\Users\YourUsername\AppData\Local\Programs\Python\Python3x\Scripts
+1. **Path Length Errors**
    ```
-
-2. **DLL Load Failures**
-   - Install [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-   - Restart computer after installation
-
-3. **COM Automation Errors**
-   ```cmd
-   # Run PowerShell as Administrator:
-   Set-ExecutionPolicy RemoteSigned
+   ERROR: Could not install packages [...] filename too long
    ```
+   **Solution:**
+   - Enable long path support as described above
+   - Move project to a shorter path
+   - Use `pip install --no-cache-dir` to avoid temp directory issues
 
-4. **Package Installation Errors**
-   ```cmd
-   pip install --no-cache-dir -r requirements.txt
+2. **Visio Not Detected**
    ```
+   Error: Microsoft Visio installation not found
+   ```
+   **Solutions:**
+   - Verify Visio is installed for all users
+   - Repair Visio installation
+   - Run as administrator
+   - Check registry permissions
 
-5. **Visio Integration Issues**
-   - Run Visio as administrator once
-   - Check Office COM automation:
-     ```cmd
-     # Run PowerShell as Administrator:
-     Get-ItemProperty "HKLM:\SOFTWARE\Classes\CLSID\{00020970-0000-0000-C000-000000000046}"
+3. **Build Errors**
+   ```
+   error: Microsoft Visual C++ 14.0 or greater is required
+   ```
+   **Solutions:**
+   - Install/repair Visual Studio Build Tools
+   - Use pre-built wheels:
+     ```bash
+     pip install --only-binary :all: -r requirements.txt
      ```
 
-### Performance Optimization
+4. **Permission Errors**
+   ```
+   Access is denied: 'C:\\Program Files\\...'
+   ```
+   **Solutions:**
+   - Run command prompt as Administrator
+   - Check folder permissions
+   - Disable Windows Defender real-time protection temporarily
 
-1. **Windows Defender Exclusions**:
-   - Add project directory to Windows Security exclusions
-   - Exclude Python interpreter path
+### Getting Help
 
-2. **System Performance**:
-   ```cmd
-   # Run PowerShell as Administrator:
-   powercfg /setactive SCHEME_MIN
+If you encounter issues not covered here:
+
+1. Check the [GitHub Issues](https://github.com/yourusername/visio-agent/issues)
+2. Run diagnostics:
+   ```bash
+   python scripts/windows_checks.py --verbose
+   python validate_dependencies.py --verbose
+   ```
+3. Create a new issue with:
+   - Windows version and build number
+   - Python version
+   - Visio version
+   - Error messages and logs
+   - Steps to reproduce
+
+## Post-Installation
+
+After successful installation:
+
+1. **Test the Application**
+   ```bash
+   python run.py
    ```
 
-3. **Memory Management**:
-   - Close unnecessary applications
-   - Monitor memory usage with Task Manager
+2. **Configure Development Environment**
+   - Set up VS Code or PyCharm
+   - Install recommended extensions
+   - Configure debugger
 
-## Additional Resources
+3. **Set Up Git Hooks**
+   ```bash
+   pre-commit install
+   ```
 
-- [Python Windows Setup Guide](https://docs.python.org/3/using/windows.html)
-- [Node.js Windows Guide](https://nodejs.org/en/download/package-manager/#windows)
-- [Visual Studio Build Tools Guide](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
-- [Microsoft Visio Documentation](https://docs.microsoft.com/en-us/office/client-developer/visio/visio-home)
+4. **Review Documentation**
+   - Read the API documentation
+   - Check the development guidelines
+   - Review security best practices
 
-## Support
+## Updating
 
-If you encounter any issues:
-1. Check the [Windows Troubleshooting Guide](docs/windows_troubleshooting.md)
-2. Search [existing issues](https://github.com/yourusername/visio-agent/issues)
-3. Create a new issue with:
-   - Windows version
-   - Python version
-   - Error messages
-   - Steps to reproduce 
+To update an existing installation:
+
+1. **Backup Your Environment**
+   ```bash
+   copy .env .env.backup
+   ```
+
+2. **Update Repository**
+   ```bash
+   git pull origin main
+   ```
+
+3. **Update Dependencies**
+   ```bash
+   .\venv\Scripts\activate
+   pip install -r requirements.txt --upgrade
+   ```
+
+4. **Verify Update**
+   ```bash
+   python validate_dependencies.py
+   python scripts/windows_checks.py
+   ``` 

@@ -7,11 +7,22 @@ Checks installed package versions against requirements files.
 import importlib.metadata
 import platform
 import sys
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import pkg_resources
 from packaging import version
+
+# Import Windows checks if on Windows
+if platform.system() == 'Windows':
+    try:
+        from scripts.windows_checks import check_windows_requirements, print_windows_check_results
+        WINDOWS_CHECKS_AVAILABLE = True
+    except ImportError:
+        WINDOWS_CHECKS_AVAILABLE = False
+else:
+    WINDOWS_CHECKS_AVAILABLE = False
 
 
 def parse_requirements(filename: str) -> List[Tuple[str, Optional[str]]]:
@@ -84,68 +95,77 @@ def check_dependencies(requirements_file: str) -> Tuple[List[str], List[str], Li
 
 
 def main():
-    """Main validation function."""
-    system = platform.system()
-    print(f"\nValidating dependencies for {system} platform...")
+    """Main function to validate dependencies."""
+    print(f"\nValidating dependencies for {platform.system()} platform...")
     
-    # Base requirements
-    base_missing, base_outdated, base_ok = check_dependencies('base-requirements.txt')
+    # Run Windows-specific checks if applicable
+    if platform.system() == 'Windows':
+        if WINDOWS_CHECKS_AVAILABLE:
+            print("\nRunning Windows environment checks...")
+            win_checks_passed, win_results = check_windows_requirements()
+            print_windows_check_results(win_results)
+            
+            if not win_checks_passed:
+                print("\nCritical: Windows environment requirements not met.")
+                print("Please address the issues marked with ✗ before proceeding.")
+                return True
+        else:
+            print("\nWarning: Windows checks module not available.")
+            print("Please run scripts/windows_checks.py separately to validate Windows requirements.")
     
-    # Platform-specific requirements
-    if system == "Darwin":
-        platform_file = 'requirements-mac.txt'
-    elif system == "Windows":
-        platform_file = 'requirements-win.txt'
-    else:
-        platform_file = None
-        
-    if platform_file and Path(platform_file).exists():
-        plat_missing, plat_outdated, plat_ok = check_dependencies(platform_file)
-        base_missing.extend(plat_missing)
-        base_outdated.extend(plat_outdated)
-        base_ok.extend(plat_ok)
+    # Check core requirements
+    core_missing, core_outdated, core_ok = check_dependencies('requirements-core.txt')
     
-    # Development requirements if present
-    if Path('requirements-dev.txt').exists():
+    # Check main requirements
+    main_missing, main_outdated, main_ok = check_dependencies('requirements.txt')
+    
+    # Check dev requirements if they exist
+    if os.path.exists('requirements-dev.txt'):
         dev_missing, dev_outdated, dev_ok = check_dependencies('requirements-dev.txt')
-        print("\nDevelopment dependencies:")
-        if dev_missing:
-            print("\nMissing development packages:")
-            for pkg in dev_missing:
-                print(f"  - {pkg}")
-        if dev_outdated:
-            print("\nOutdated development packages:")
-            for pkg in dev_outdated:
-                print(f"  - {pkg}")
-        if dev_ok:
-            print("\nCorrectly installed development packages:")
-            for pkg in sorted(dev_ok):
-                print(f"  - {pkg}")
-    
-    # Print results
-    print("\nBase and platform-specific dependencies:")
-    if base_missing:
-        print("\nMissing packages:")
-        for pkg in base_missing:
-            print(f"  - {pkg}")
-            
-    if base_outdated:
-        print("\nOutdated packages:")
-        for pkg in base_outdated:
-            print(f"  - {pkg}")
-            
-    if base_ok:
-        print("\nCorrectly installed packages:")
-        for pkg in sorted(base_ok):
-            print(f"  - {pkg}")
-    
-    # Exit with error if there are missing or outdated packages
-    if base_missing or base_outdated:
-        print("\nPlease install missing packages and update outdated ones.")
-        sys.exit(1)
     else:
-        print("\nAll required packages are installed and up to date!")
-        sys.exit(0)
+        dev_missing, dev_outdated, dev_ok = [], [], []
+    
+    # Print summary
+    print("\nDependency Validation Summary:")
+    print("Core Dependencies:")
+    print_dependency_status(core_missing, core_outdated, core_ok)
+    
+    print("\nMain Dependencies:")
+    print_dependency_status(main_missing, main_outdated, main_ok)
+    
+    if os.path.exists('requirements-dev.txt'):
+        print("\nDev Dependencies:")
+        print_dependency_status(dev_missing, dev_outdated, dev_ok)
+    
+    # Return overall status
+    has_issues = bool(
+        core_missing or core_outdated or
+        main_missing or main_outdated or
+        dev_missing or dev_outdated
+    )
+    
+    if not has_issues and platform.system() == 'Windows':
+        print("\nNote: On Windows, please ensure you've run scripts/windows_checks.py")
+        print("to validate Windows-specific requirements.")
+    
+    return has_issues
+
+
+def print_dependency_status(missing: List[str], outdated: List[str], ok: List[str]):
+    if missing:
+        print("\nMissing packages:")
+        for pkg in missing:
+            print(f"  - {pkg}")
+            
+    if outdated:
+        print("\nOutdated packages:")
+        for pkg in outdated:
+            print(f"  - {pkg}")
+            
+    if ok:
+        print("\nCorrectly installed packages:")
+        for pkg in sorted(ok):
+            print(f"  - {pkg}")
 
 
 if __name__ == '__main__':

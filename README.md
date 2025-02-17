@@ -21,40 +21,86 @@ An advanced AI-powered system for automating the generation and maintenance of p
 - Microsoft Visio (2019 or later)
 - Microsoft 365 Account with appropriate licenses
 
-### Installation
+## Windows Installation Requirements
 
-#### Windows Users
-For detailed Windows installation instructions, please see our [Windows Installation Guide](docs/windows_installation.md).
+Before installing Visio Agent on Windows, ensure your system meets the following requirements:
 
-#### General Installation
+### System Requirements
+- Windows 10 or Windows 11
+- Microsoft Visio (2019 or later) installed
+- Python 3.8 or later
+- Git
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/visio-agent.git
-cd visio-agent
-```
+### Windows-Specific Setup
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+1. **Enable Long Path Support**
+   ```powershell
+   # Run PowerShell as Administrator
+   Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1
+   ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+2. **Verify Windows Requirements**
+   ```bash
+   # Run from the project root
+   python scripts/windows_checks.py
+   ```
+   This script will verify:
+   - Windows version compatibility
+   - Microsoft Visio installation
+   - Long path support status
 
-4. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+3. **Install Visual C++ Build Tools**
+   Some dependencies require Visual C++ Build Tools. Install them using one of these methods:
+   - Download from [Visual Studio Downloads](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+   - Or using Chocolatey: `choco install visualstudio2019buildtools`
 
-5. Run the application:
-```bash
-python run.py
-```
+### Installation Steps for Windows
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/visio-agent.git
+   cd visio-agent
+   ```
+
+2. **Create Virtual Environment**
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Validate Installation**
+   ```bash
+   python validate_dependencies.py
+   ```
+
+### Troubleshooting Windows Installation
+
+1. **Path Length Issues**
+   - If you encounter path length errors, ensure long path support is enabled
+   - Consider installing in a shorter path (e.g., `C:\Projects\visio-agent`)
+
+2. **Visio Detection Issues**
+   - Verify Visio is installed for your user account
+   - Try repairing the Visio installation
+   - Check if Visio is accessible from Python
+
+3. **Build Errors**
+   - Ensure Visual C++ Build Tools are installed
+   - Try installing wheels instead of building from source:
+     ```bash
+     pip install --only-binary :all: -r requirements.txt
+     ```
+
+4. **Permission Issues**
+   - Run PowerShell/Command Prompt as Administrator when needed
+   - Check Windows Defender or antivirus settings
+
+For additional help with Windows-specific issues, please check our [Windows Installation Guide](docs/windows_installation.md) or open an issue on GitHub.
 
 ## Project Structure
 
