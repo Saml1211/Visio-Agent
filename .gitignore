@@ -1,26 +1,77 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
 # Python
 __pycache__/
 *.py[cod]
-venv/
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+log/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.pyc
+
+# Test coverage
+.coverage
+coverage/
+htmlcov/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
 
 # C#
 bin/
 obj/
 
 # Environment
-.env
 *.vsdx
 
 # System
 .DS_Store
-.idea/
-
-# Logs
-*.log
 
 # New entries from the code block
-.vscode/
 data/
 .visio/
 config.vault
-node_modules/
