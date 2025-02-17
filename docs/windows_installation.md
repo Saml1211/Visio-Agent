@@ -116,9 +116,17 @@ python -m pip install --upgrade pip
 # Install wheels for binary packages
 pip install wheel
 
-# Install dependencies
-pip install --only-binary :all: -r requirements.txt
+# Install core Microsoft dependencies first
+pip install O365 msal msgraph-core
+
+# Install PyTorch with CUDA support (if you have an NVIDIA GPU)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Install remaining dependencies
+pip install -r requirements.txt
 ```
+
+Note: The PyTorch installation command above installs the latest version with CUDA 12.1 support. If you need a different CUDA version, adjust the URL accordingly (e.g., cu118 for CUDA 11.8).
 
 ### 5. Verify Windows Requirements
 

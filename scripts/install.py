@@ -215,7 +215,24 @@ def main():
     subprocess.run([str(python), "-m", "pip", "install", "--upgrade", "wheel", "setuptools"], 
                   cwd=root, check=True)
     
-    # Install requirements with platform-specific dependencies
+    # Install core Microsoft dependencies first
+    subprocess.run([str(python), "-m", "pip", "install", "O365", "msal", "msgraph-core"],
+                  cwd=root, check=True)
+    
+    # Handle PyTorch installation on Windows
+    if platform.system() == "Windows":
+        cuda_available, cuda_msg = check_cuda_windows()
+        if cuda_available:
+            print("\nInstalling PyTorch with CUDA support...")
+            subprocess.run([str(python), "-m", "pip", "install", "torch", "torchvision",
+                          "--index-url", "https://download.pytorch.org/whl/cu121"],
+                         cwd=root, check=True)
+        else:
+            print("\nInstalling PyTorch without CUDA support...")
+            subprocess.run([str(python), "-m", "pip", "install", "torch", "torchvision"],
+                         cwd=root, check=True)
+    
+    # Install remaining requirements
     try:
         subprocess.run([str(python), "-m", "pip", "install", "-r", "requirements.txt"], 
                       cwd=root, check=True)

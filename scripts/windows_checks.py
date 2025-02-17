@@ -11,6 +11,7 @@ import winreg
 import platform
 from pathlib import Path
 from typing import Tuple, Optional
+import subprocess
 
 def check_windows_version() -> Tuple[bool, str]:
     """
@@ -87,6 +88,27 @@ def check_path_length_limit() -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Error checking long path support: {str(e)}"
 
+def check_cuda_availability() -> Tuple[bool, str]:
+    """
+    Check if CUDA is available on the system.
+    Returns:
+        Tuple[bool, str]: (is_available, message)
+    """
+    try:
+        # Check if nvidia-smi is available
+        subprocess.run(['nvidia-smi'], capture_output=True, check=True)
+        
+        # Get CUDA version
+        result = subprocess.run(['nvidia-smi', '--query-gpu=driver_version', '--format=csv,noheader'], 
+                              capture_output=True, text=True, check=True)
+        cuda_version = result.stdout.strip()
+        
+        return True, f"CUDA is available (Driver Version: {cuda_version})"
+    except subprocess.CalledProcessError:
+        return False, "NVIDIA GPU/CUDA not detected"
+    except Exception as e:
+        return False, f"Error checking CUDA availability: {str(e)}"
+
 def check_windows_requirements() -> Tuple[bool, list]:
     """
     Run all Windows-specific checks and return results.
@@ -112,6 +134,11 @@ def check_windows_requirements() -> Tuple[bool, list]:
     paths_enabled, paths_msg = check_path_length_limit()
     results.append(("Long Path Support", paths_enabled, paths_msg))
     all_passed &= paths_enabled
+    
+    # Check CUDA availability
+    cuda_available, cuda_msg = check_cuda_availability()
+    results.append(("CUDA Support", cuda_available, cuda_msg))
+    # Don't make CUDA mandatory for all_passed since it's optional
     
     return all_passed, results
 
